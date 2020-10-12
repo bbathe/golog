@@ -52,6 +52,11 @@ func Start() {
 	// our quit channel
 	quitStartup = make(chan bool)
 
+	// fire off thread to collect spots from HamAlert
+	go func() {
+		GatherHamAlerts()
+	}()
+
 	// define tasks that run every minute
 	tasksOneMinute := []func(){
 		SourceFiles,

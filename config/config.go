@@ -75,6 +75,16 @@ type logbookservices struct {
 	QRZ     qrz
 }
 
+type hamalert struct {
+	HostPort string
+	Username string
+	Password string
+}
+
+type clusterservices struct {
+	HamAlert hamalert
+}
+
 // configuration holds the application configuration
 type configuration struct {
 	ArchiveDirectory string
@@ -86,6 +96,7 @@ type configuration struct {
 	UI               ui
 	SourceFiles      []sourcefile
 	LogbookServices  logbookservices
+	Clusterservices  clusterservices
 }
 
 var (
@@ -104,6 +115,8 @@ var (
 	EQSL        eqsl
 	ClubLog     clublog
 	QRZ         qrz
+
+	HamAlert hamalert
 )
 
 // Read reads application configuration from file fname
@@ -138,6 +151,7 @@ func Read(fname string) error {
 	EQSL = c.LogbookServices.EQSL
 	ClubLog = c.LogbookServices.ClubLog
 	QRZ = c.LogbookServices.QRZ
+	HamAlert = c.Clusterservices.HamAlert
 
 	return nil
 }
@@ -159,6 +173,9 @@ func Write() error {
 			EQSL:    EQSL,
 			ClubLog: ClubLog,
 			QRZ:     QRZ,
+		},
+		Clusterservices: clusterservices{
+			HamAlert: HamAlert,
 		},
 	}
 

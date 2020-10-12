@@ -91,6 +91,18 @@ func LookupMode(mode, submode string) string {
 	return mode
 }
 
+// LookupBand returns the band name for teh frequency passed
+func LookupBand(frequency int) string {
+	for _, b := range Bands {
+		if b.FreqHigh >= frequency && b.FreqLow <= frequency {
+			return b.Band
+		}
+	}
+
+	// no match
+	return ""
+}
+
 // ListBandNames returns a list of the bands for displaying to the user
 func ListBandNames() []string {
 	bands := make([]string, 0, len(Bands))

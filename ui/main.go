@@ -3,14 +3,13 @@ package ui
 import (
 	"log"
 	"os"
-	"os/exec"
 	"path/filepath"
-	"strings"
 	"time"
 
 	"github.com/bbathe/golog/adif"
 	"github.com/bbathe/golog/config"
 	"github.com/bbathe/golog/db"
+	"golang.org/x/sys/windows"
 
 	"github.com/bbathe/golog/models/qso"
 	"github.com/lxn/walk"
@@ -19,14 +18,17 @@ import (
 )
 
 var (
-	appName  = "Go Log"
-	appIcon  *walk.Icon
-	runDll32 string
+	appName       = "Go Log"
+	appIcon       *walk.Icon
+	runDll32      string
+	flashWindowEx *windows.Proc
 
 	mainWin        *walk.MainWindow
 	qsomodel       *QSOModel
 	selectedQSO    = &qso.QSO{}
 	bndSelectedQSO *walk.DataBinder
+
+	dxclustermodel *DXClusterModel
 )
 
 // initVariables initializes shared ui variables
@@ -41,6 +43,18 @@ func initVariables() {
 
 	// full path to rundll32 for launching web browser
 	runDll32 = filepath.Join(os.Getenv("SYSTEMROOT"), "System32", "rundll32.exe")
+
+	winuserDll, err := windows.LoadDLL("User32.dll")
+	if err != nil {
+		MsgError(nil, err)
+		log.Fatalf("%+v", err)
+	}
+
+	flashWindowEx, err = winuserDll.FindProc("FlashWindowEx")
+	if err != nil {
+		MsgError(nil, err)
+		log.Fatalf("%+v", err)
+	}
 }
 
 // gologWindow creates the main window and begins processing of user input
@@ -512,6 +526,7 @@ func GoLogWindow() error {
 				},
 			},
 			qsoTableView(),
+			dxClusterTableView(),
 		},
 	}.Create()
 	if err != nil {
@@ -535,6 +550,14 @@ func GoLogWindow() error {
 
 	// sort to latest qsos on top
 	err = qsomodel.Sort(0, walk.SortDescending)
+	if err != nil {
+		MsgError(nil, err)
+		log.Printf("%+v", err)
+		return err
+	}
+
+	// sort to latest cluster posts on top
+	err = dxclustermodel.Sort(0, walk.SortDescending)
 	if err != nil {
 		MsgError(nil, err)
 		log.Printf("%+v", err)
@@ -666,20 +689,3 @@ func exportADIF() {
 // 		return
 // 	}
 // }
-
-// launchQRZPage opens the users default web browser to the qso partners QRZ.com page
-func launchQRZPage(call string) error {
-	u := "https://www.qrz.com"
-	if call != "" {
-		u += "/db/" + strings.Replace(call, "%", "", -1)
-	}
-
-	err := exec.Command(runDll32, "url.dll,FileProtocolHandler", u).Start()
-	if err != nil {
-		MsgError(nil, err)
-		log.Printf("%+v", err)
-		return err
-	}
-
-	return nil
-}
