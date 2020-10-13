@@ -144,7 +144,7 @@ func GoLogWindow() error {
 		},
 		Children: []declarative.Widget{
 			declarative.Composite{
-				Layout: declarative.HBox{},
+				Layout: declarative.HBox{MarginsZero: true},
 				Children: []declarative.Widget{
 					declarative.Composite{
 						Layout: declarative.VBox{},
