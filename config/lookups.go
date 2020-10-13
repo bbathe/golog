@@ -39,27 +39,27 @@ type tqslconfig struct {
 	Bandmap adifbandmap `xml:"bands"`
 }
 
-type Band struct {
+type band struct {
 	Band     string
 	FreqLow  int
 	FreqHigh int
 	Visible  bool
 }
 
-type Mode struct {
+type mode struct {
 	Mode    string
 	Submode string
 	Visible bool
 }
 
-type Lookups struct {
-	Bands []Band
-	Modes []Mode
+type lookups struct {
+	Bands []band
+	Modes []mode
 }
 
 var (
-	Bands []Band
-	Modes []Mode
+	Bands []band
+	Modes []mode
 )
 
 // LookupModeSubmode returns the mode & submode based on the mode name mode
@@ -147,7 +147,7 @@ func UpdateLookupsFromTQSL(tqslconfigxml string) error {
 	}
 
 	// transform to our lookups
-	bands := make([]Band, 0, len(tqslconf.Bandmap.Bands))
+	bands := make([]band, 0, len(tqslconf.Bandmap.Bands))
 	for _, b := range tqslconf.Bandmap.Bands {
 		low, err := strconv.Atoi(b.Low)
 		if err != nil {
@@ -161,7 +161,7 @@ func UpdateLookupsFromTQSL(tqslconfigxml string) error {
 			return err
 		}
 
-		bands = append(bands, Band{
+		bands = append(bands, band{
 			Band:     strings.ToLower(b.AdifBand),
 			FreqLow:  low,
 			FreqHigh: high,
@@ -169,9 +169,9 @@ func UpdateLookupsFromTQSL(tqslconfigxml string) error {
 		})
 	}
 
-	modes := make([]Mode, 0, len(tqslconf.Adifmap.Adifmodes))
+	modes := make([]mode, 0, len(tqslconf.Adifmap.Adifmodes))
 	for _, m := range tqslconf.Adifmap.Adifmodes {
-		modes = append(modes, Mode{
+		modes = append(modes, mode{
 			Mode:    strings.ToUpper(m.AdifMode),
 			Submode: strings.ToUpper(m.AdifSubmode),
 			Visible: true,
@@ -193,29 +193,29 @@ func ReadLookupsFromFile(fname string) error {
 		return err
 	}
 
-	var lookups Lookups
-	err = yaml.Unmarshal(bs, &lookups)
+	var l lookups
+	err = yaml.Unmarshal(bs, &l)
 	if err != nil {
 		log.Printf("%+v", err)
 		return err
 	}
 
 	// unwrap
-	Bands = lookups.Bands
-	Modes = lookups.Modes
+	Bands = l.Bands
+	Modes = l.Modes
 
 	return nil
 }
 
 // WriteLookupsToFile writes lookups to file fname
 func WriteLookupsToFile(fname string) error {
-	lookups := Lookups{
+	l := lookups{
 		Bands: Bands,
 		Modes: Modes,
 	}
 
 	// create YAML to write from lookups
-	b, err := yaml.Marshal(lookups)
+	b, err := yaml.Marshal(l)
 	if err != nil {
 		log.Printf("%+v", err)
 		return err

@@ -213,7 +213,7 @@ func dxClusterTableView() declarative.TableView {
 		},
 		Columns: []declarative.TableViewColumn{
 			{Title: "Time"},
-			{Title: "Call"},
+			{Title: "Callsign"},
 			{Title: "Band"},
 			{Title: "Frequency", Alignment: declarative.AlignFar},
 			{Title: "Comments", Width: 150},

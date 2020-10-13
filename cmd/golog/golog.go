@@ -70,7 +70,7 @@ func main() {
 	}
 
 	// make sure archive directory exists
-	err = os.MkdirAll(config.ArchiveDirectory, os.ModePerm)
+	err = os.MkdirAll(config.WorkingDirectory, os.ModePerm)
 	if err != nil {
 		ui.MsgError(nil, err)
 		log.Fatalf("%+v", err)

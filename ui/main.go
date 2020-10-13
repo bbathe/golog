@@ -8,7 +8,6 @@ import (
 
 	"github.com/bbathe/golog/adif"
 	"github.com/bbathe/golog/config"
-	"github.com/bbathe/golog/db"
 	"golang.org/x/sys/windows"
 
 	"github.com/bbathe/golog/models/qso"
@@ -103,16 +102,9 @@ func GoLogWindow() error {
 				Text: "&File",
 				Items: []declarative.MenuItem{
 					declarative.Action{
-						Text: "&New",
+						Text: "&Options...",
 						OnTriggered: func() {
-							err := db.NewQSODb()
-							if err != nil {
-								MsgError(mainWin, err)
-								log.Printf("%+v", err)
-								return
-							}
-
-							qsomodel.ResetRows()
+							updateConfig()
 						},
 					},
 					declarative.Separator{},
@@ -128,15 +120,15 @@ func GoLogWindow() error {
 				Text: "&ADIF",
 				Items: []declarative.MenuItem{
 					declarative.Action{
-						Text: "&Import",
+						Text: "&Import...",
 						OnTriggered: func() {
-							importADIF(qsomodel)
+							importADIF(mainWin, qsomodel)
 						},
 					},
 					declarative.Action{
-						Text: "&Export",
+						Text: "&Export...",
 						OnTriggered: func() {
-							exportADIF()
+							exportADIF(mainWin)
 						},
 					},
 				},
@@ -244,7 +236,7 @@ func GoLogWindow() error {
 						Layout: declarative.VBox{},
 						Children: []declarative.Widget{
 							declarative.Label{
-								Text: "Call",
+								Text: "Callsign",
 							},
 							declarative.Composite{
 								Layout: declarative.HBox{MarginsZero: true},
@@ -582,21 +574,16 @@ func GoLogWindow() error {
 }
 
 // importADIF drives the user thru doing an ADIF import
-func importADIF(model *QSOModel) {
-	file, err := OpenFilePicker(
-		[]FileFilter{
-			{Description: "ADIF Files", Wildcard: "*.adif;*.adi"},
-			{Description: "All Files", Wildcard: "*.*"},
-		},
-	)
+func importADIF(parent walk.Form, model *QSOModel) {
+	fname, err := OpenFilePicker(parent, "Select file to import", "ADIF Files (*.adi;*.adif)|*.adi;*.adif|All Files (*.*)|*.*")
 	if err != nil {
 		MsgError(nil, err)
 		log.Printf("%+v", err)
 		return
 	}
 
-	if file != nil {
-		qs, err := adif.ReadFromFile(*file, qso.Sent)
+	if fname != nil {
+		qs, err := adif.ReadFromFile(*fname, qso.Sent)
 		if err != nil {
 			MsgError(nil, err)
 			log.Printf("%+v", err)
@@ -614,20 +601,15 @@ func importADIF(model *QSOModel) {
 }
 
 // exportADIF drives the user thru doing an ADIF export
-func exportADIF() {
-	file, err := SaveFilePicker(
-		[]FileFilter{
-			{Description: "ADIF Files", Wildcard: "*.adif;*.adi"},
-			{Description: "All Files", Wildcard: "*.*"},
-		},
-	)
+func exportADIF(parent walk.Form) {
+	fname, err := OpenFilePicker(parent, "Select file to export QSOs", "ADIF Files (*.adi;*.adif)|*.adi;*.adif|All Files (*.*)|*.*")
 	if err != nil {
 		MsgError(nil, err)
 		log.Printf("%+v", err)
 		return
 	}
 
-	if file != nil {
+	if fname != nil {
 		qs, err := qso.All()
 		if err != nil {
 			MsgError(nil, err)
@@ -635,7 +617,7 @@ func exportADIF() {
 			return
 		}
 
-		err = adif.WriteToFile(qs, *file)
+		err = adif.WriteToFile(qs, *fname)
 		if err != nil {
 			MsgError(nil, err)
 			log.Printf("%+v", err)
@@ -689,3 +671,22 @@ func exportADIF() {
 // 		return
 // 	}
 // }
+
+func updateConfig() {
+	err := optionsWindows(mainWin)
+	if err != nil {
+		MsgError(mainWin, err)
+		log.Printf("%+v", err)
+		return
+	}
+
+	// reload so new changes are in effect
+	qsomodel.ResetRows()
+
+	err = bndSelectedQSO.Reset()
+	if err != nil {
+		MsgError(mainWin, err)
+		log.Printf("%+v", err)
+		return
+	}
+}

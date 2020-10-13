@@ -166,9 +166,9 @@ func (m *QSOModel) ResetRows() {
 
 	// search or not based on if criteria is set in model
 	if m.searchCriteria != nil {
-		r, err = qso.Search(*m.searchCriteria, config.QSOLimit)
+		r, err = qso.Search(*m.searchCriteria, config.QSOTableview.Limit)
 	} else {
-		r, err = qso.History(config.QSOHistory, config.QSOLimit)
+		r, err = qso.History(config.QSOTableview.History, config.QSOTableview.Limit)
 	}
 	if err != nil {
 		log.Printf("%+v", err)
@@ -241,7 +241,7 @@ func qsoTableView() declarative.TableView {
 		Columns: []declarative.TableViewColumn{
 			{Title: "Date"},
 			{Title: "Time"},
-			{Title: "Call"},
+			{Title: "Callsign"},
 			{Title: "Band"},
 			{Title: "Mode"},
 			{Title: "RST Rcvd"},

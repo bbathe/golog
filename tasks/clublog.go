@@ -27,7 +27,7 @@ func QSLClublog() {
 	muxClublogUpload.Lock()
 	defer muxClublogUpload.Unlock()
 
-	qsos, err := qso.FindQSLsToSend(qso.QSLClublog, config.QSLDelay)
+	qsos, err := qso.FindQSLsToSend(qso.QSLClublog, config.LogbookServices.QSLDelay)
 	if err != nil {
 		ui.MsgError(nil, err)
 		log.Printf("%+v", err)
@@ -79,7 +79,7 @@ func uploadQSOsToClublog(qsos []qso.QSO, forceBulk bool) error {
 	// handle with bulk call or realtime call?
 	if len(qsos) > 15 || (forceBulk && len(qsos) > 1) {
 		// form working file name
-		fname := filepath.Join(config.ArchiveDirectory, "Clublog-"+time.Now().UTC().Format("2006-Jan-02_15-04-05")+".adif")
+		fname := filepath.Join(config.WorkingDirectory, "Clublog-"+time.Now().UTC().Format("2006-Jan-02_15-04-05")+".adif")
 
 		// write qsos as adif to file
 		err := adif.WriteToFile(qsos, fname)
@@ -129,22 +129,22 @@ func uploadQSOsToClublog(qsos []qso.QSO, forceBulk bool) error {
 	}
 
 	// set the other form fields required
-	err := w.WriteField("email", config.ClubLog.Email)
+	err := w.WriteField("email", config.LogbookServices.ClubLog.Email)
 	if err != nil {
 		log.Printf("%+v", err)
 		return err
 	}
-	err = w.WriteField("password", config.ClubLog.Password)
+	err = w.WriteField("password", config.LogbookServices.ClubLog.Password)
 	if err != nil {
 		log.Printf("%+v", err)
 		return err
 	}
-	err = w.WriteField("callsign", config.ClubLog.Callsign)
+	err = w.WriteField("callsign", config.LogbookServices.ClubLog.Callsign)
 	if err != nil {
 		log.Printf("%+v", err)
 		return err
 	}
-	err = w.WriteField("api", config.ClubLog.APIKey)
+	err = w.WriteField("api", config.LogbookServices.ClubLog.APIKey)
 	if err != nil {
 		log.Printf("%+v", err)
 		return err

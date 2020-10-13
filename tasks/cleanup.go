@@ -18,7 +18,7 @@ func Cleanup() {
 	defer muxCleanup.Unlock()
 
 	// cleanup archive directory
-	f, err := os.Open(config.ArchiveDirectory)
+	f, err := os.Open(config.WorkingDirectory)
 	if err != nil {
 		ui.MsgError(nil, err)
 		log.Printf("%+v", err)
@@ -38,7 +38,7 @@ func Cleanup() {
 	then := now.Add(-(time.Duration(3*24) * time.Hour))
 	for _, file := range files {
 		if file.ModTime().Before(then) {
-			err = os.Remove(filepath.Join(config.ArchiveDirectory, file.Name()))
+			err = os.Remove(filepath.Join(config.WorkingDirectory, file.Name()))
 			if err != nil && !os.IsNotExist(err) {
 				ui.MsgError(nil, err)
 				log.Printf("%+v", err)

@@ -16,6 +16,11 @@ type qsodatabase struct {
 	Location string
 }
 
+type qsotableview struct {
+	History int
+	Limit   int
+}
+
 type mainwinrectangle struct {
 	X             int `yaml:"topleftx"`
 	Y             int `yaml:"toplefty"`
@@ -69,10 +74,11 @@ type tqsl struct {
 }
 
 type logbookservices struct {
-	TQSL    tqsl
-	EQSL    eqsl
-	ClubLog clublog
-	QRZ     qrz
+	QSLDelay int
+	TQSL     tqsl
+	EQSL     eqsl
+	ClubLog  clublog
+	QRZ      qrz
 }
 
 type hamalert struct {
@@ -85,38 +91,44 @@ type clusterservices struct {
 	HamAlert hamalert
 }
 
-// configuration holds the application configuration
-type configuration struct {
-	ArchiveDirectory string
-	QSLDelay         int
-	QSOHistory       int
-	QSOLimit         int
+// Configuration is the application configuration that is serialized/deserialized to file
+type Configuration struct {
 	Station          station
 	QSODatabase      qsodatabase
+	QSOTableview     qsotableview
 	UI               ui
 	SourceFiles      []sourcefile
 	LogbookServices  logbookservices
-	Clusterservices  clusterservices
+	ClusterServices  clusterservices
+	WorkingDirectory string
+}
+
+func (c *Configuration) AddSourceFile(fname string) {
+	if fname != "" {
+		c.SourceFiles = append(c.SourceFiles, sourcefile{
+			Location: fname,
+			Offset:   0,
+		})
+	}
+}
+
+func (c *Configuration) RemoveSourceFile(idx int) {
+	if idx >= 0 {
+		c.SourceFiles = append(c.SourceFiles[:idx], c.SourceFiles[idx+1:]...)
+	}
 }
 
 var (
 	configFile string
 
-	ArchiveDirectory string
-	QSLDelay         int
-	QSOHistory       int
-	QSOLimit         int
-
-	Station     station
-	QSODatabase qsodatabase
-	UI          ui
-	SourceFiles []sourcefile
-	TQSL        tqsl
-	EQSL        eqsl
-	ClubLog     clublog
-	QRZ         qrz
-
-	HamAlert hamalert
+	Station          station
+	QSODatabase      qsodatabase
+	QSOTableview     qsotableview
+	UI               ui
+	SourceFiles      []sourcefile
+	LogbookServices  logbookservices
+	ClusterServices  clusterservices
+	WorkingDirectory string
 )
 
 // Read reads application configuration from file fname
@@ -131,54 +143,84 @@ func Read(fname string) error {
 		return err
 	}
 
-	var c configuration
+	var c Configuration
 	err = yaml.Unmarshal(bytes, &c)
 	if err != nil {
 		log.Printf("%+v", err)
 		return err
 	}
 
-	// unwrap
 	Station = c.Station
 	QSODatabase = c.QSODatabase
+	QSOTableview = c.QSOTableview
 	UI = c.UI
 	SourceFiles = c.SourceFiles
-	ArchiveDirectory = c.ArchiveDirectory
-	QSLDelay = c.QSLDelay
-	QSOHistory = c.QSOHistory
-	QSOLimit = c.QSOLimit
-	TQSL = c.LogbookServices.TQSL
-	EQSL = c.LogbookServices.EQSL
-	ClubLog = c.LogbookServices.ClubLog
-	QRZ = c.LogbookServices.QRZ
-	HamAlert = c.Clusterservices.HamAlert
+	LogbookServices = c.LogbookServices
+	ClusterServices = c.ClusterServices
+	WorkingDirectory = c.WorkingDirectory
 
 	return nil
 }
 
 // Write writes application configuration to the same file it was read from
 func Write() error {
-	// wrap
-	c := configuration{
+	c := Configuration{
 		Station:          Station,
 		QSODatabase:      QSODatabase,
+		QSOTableview:     QSOTableview,
 		UI:               UI,
 		SourceFiles:      SourceFiles,
-		ArchiveDirectory: ArchiveDirectory,
-		QSLDelay:         QSLDelay,
-		QSOHistory:       QSOHistory,
-		QSOLimit:         QSOLimit,
-		LogbookServices: logbookservices{
-			TQSL:    TQSL,
-			EQSL:    EQSL,
-			ClubLog: ClubLog,
-			QRZ:     QRZ,
-		},
-		Clusterservices: clusterservices{
-			HamAlert: HamAlert,
-		},
+		LogbookServices:  LogbookServices,
+		ClusterServices:  ClusterServices,
+		WorkingDirectory: WorkingDirectory,
 	}
 
+	// create YAML to write from Options
+	b, err := yaml.Marshal(c)
+	if err != nil {
+		log.Printf("%+v", err)
+		return err
+	}
+
+	// write out to file
+	err = ioutil.WriteFile(configFile, b, 0600)
+	if err != nil {
+		log.Printf("%+v", err)
+		return err
+	}
+
+	return nil
+}
+
+// Copy provides the caller a copy of the current configuration
+func Copy(c *Configuration) error {
+	// make sure file is current config
+	err := Write()
+	if err != nil {
+		log.Printf("%+v", err)
+		return err
+	}
+
+	// reread from file
+	// #nosec G304
+	bytes, err := ioutil.ReadFile(configFile)
+	if err != nil {
+		log.Printf("%+v", err)
+		return err
+	}
+
+	// into callers struct
+	err = yaml.Unmarshal(bytes, c)
+	if err != nil {
+		log.Printf("%+v", err)
+		return err
+	}
+
+	return nil
+}
+
+// Reload current configuration from caller provided configuration
+func Reload(c Configuration) error {
 	// create YAML to write from c
 	b, err := yaml.Marshal(c)
 	if err != nil {
@@ -188,6 +230,13 @@ func Write() error {
 
 	// write out to file
 	err = ioutil.WriteFile(configFile, b, 0600)
+	if err != nil {
+		log.Printf("%+v", err)
+		return err
+	}
+
+	// reread from file
+	err = Read(configFile)
 	if err != nil {
 		log.Printf("%+v", err)
 		return err

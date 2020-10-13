@@ -27,7 +27,7 @@ func QSLEqsl() {
 	muxEqslUpload.Lock()
 	defer muxEqslUpload.Unlock()
 
-	qsos, err := qso.FindQSLsToSend(qso.QSLEqsl, config.QSLDelay)
+	qsos, err := qso.FindQSLsToSend(qso.QSLEqsl, config.LogbookServices.QSLDelay)
 	if err != nil {
 		ui.MsgError(nil, err)
 		log.Printf("%+v", err)
@@ -73,7 +73,7 @@ func QSLEqslFinal() {
 // uploadQSOsToEqsl uploads qsos to eQSL
 func uploadQSOsToEqsl(qsos []qso.QSO) error {
 	// form working file name
-	fname := filepath.Join(config.ArchiveDirectory, "eQSL-"+time.Now().UTC().Format("2006-Jan-02_15-04-05")+".adif")
+	fname := filepath.Join(config.WorkingDirectory, "eQSL-"+time.Now().UTC().Format("2006-Jan-02_15-04-05")+".adif")
 
 	// write qsos as adif to file
 	err := adif.WriteToFile(qsos, fname)
@@ -105,12 +105,12 @@ func uploadQSOsToEqsl(qsos []qso.QSO) error {
 	}
 
 	// set the other form fields required
-	err = w.WriteField("eQSL_User", config.EQSL.Username)
+	err = w.WriteField("eQSL_User", config.LogbookServices.EQSL.Username)
 	if err != nil {
 		log.Printf("%+v", err)
 		return err
 	}
-	err = w.WriteField("eQSL_Pswd", config.EQSL.Password)
+	err = w.WriteField("eQSL_Pswd", config.LogbookServices.EQSL.Password)
 	if err != nil {
 		log.Printf("%+v", err)
 		return err

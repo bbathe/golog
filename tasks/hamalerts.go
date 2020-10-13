@@ -17,7 +17,7 @@ func GatherHamAlerts() {
 	var msg string
 
 	// connect
-	conn, err := net.Dial("tcp", config.HamAlert.HostPort)
+	conn, err := net.Dial("tcp", config.ClusterServices.HamAlert.HostPort)
 	if err != nil {
 		log.Printf("%+v", err)
 		ui.MsgError(nil, err)
@@ -49,7 +49,7 @@ func GatherHamAlerts() {
 		return
 	}
 	if strings.HasSuffix(msg, "login:") {
-		fmt.Fprintf(conn, config.HamAlert.Username+"\n")
+		fmt.Fprintf(conn, config.ClusterServices.HamAlert.Username+"\n")
 	} else {
 		log.Printf("%+v", err)
 		ui.MsgError(nil, err)
@@ -64,7 +64,7 @@ func GatherHamAlerts() {
 		return
 	}
 	if strings.HasSuffix(msg, "password:") {
-		fmt.Fprintf(conn, config.HamAlert.Password+"\n")
+		fmt.Fprintf(conn, config.ClusterServices.HamAlert.Password+"\n")
 	} else {
 		log.Printf("%+v", err)
 		ui.MsgError(nil, err)
@@ -78,7 +78,7 @@ func GatherHamAlerts() {
 		ui.MsgError(nil, err)
 		return
 	}
-	if !strings.Contains(msg, fmt.Sprintf("%s de HamAlert", strings.ToUpper(config.HamAlert.Username))) {
+	if !strings.Contains(msg, fmt.Sprintf("%s de HamAlert", strings.ToUpper(config.ClusterServices.HamAlert.Username))) {
 		err := fmt.Errorf("authentication failure %s", msg)
 		log.Printf("%+v", err)
 		ui.MsgError(nil, err)

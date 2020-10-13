@@ -22,7 +22,7 @@ func QSLLotw() {
 	muxLotwUpload.Lock()
 	defer muxLotwUpload.Unlock()
 
-	qsos, err := qso.FindQSLsToSend(qso.QSLLotw, config.QSLDelay)
+	qsos, err := qso.FindQSLsToSend(qso.QSLLotw, config.LogbookServices.QSLDelay)
 	if err != nil {
 		ui.MsgError(nil, err)
 		log.Printf("%+v", err)
@@ -68,7 +68,7 @@ func QSLLotwFinal() {
 // uploadQSOsToLoTW leverages tqsl to upload qsos to LoTW
 func uploadQSOsToLoTW(qsos []qso.QSO) error {
 	// form working file name
-	fname := filepath.Join(config.ArchiveDirectory, "LoTW-"+time.Now().UTC().Format("2006-Jan-02_15-04-05")+".adif")
+	fname := filepath.Join(config.WorkingDirectory, "LoTW-"+time.Now().UTC().Format("2006-Jan-02_15-04-05")+".adif")
 
 	// write qsos as adif to file
 	err := adif.WriteToFile(qsos, fname)
@@ -83,12 +83,12 @@ func uploadQSOsToLoTW(qsos []qso.QSO) error {
 	// setup command execution, capturing stdout & stderr
 	// #nosec G204
 	cmd := exec.Command(
-		config.TQSL.ExeLocation,
+		config.LogbookServices.TQSL.ExeLocation,
 		"--quiet",
 		"--batch",
 		"--nodate",
 		"--upload",
-		fmt.Sprintf("--location=%s", config.TQSL.StationLocationName),
+		fmt.Sprintf("--location=%s", config.LogbookServices.TQSL.StationLocationName),
 		fname,
 	)
 	cmd.Stdout = &stdout

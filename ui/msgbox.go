@@ -5,7 +5,7 @@ import (
 )
 
 // MsgError displays dialog to user with error details
-func MsgError(p *walk.MainWindow, err error) {
+func MsgError(p walk.Form, err error) {
 	if p == nil {
 		walk.MsgBox(nil, appName, err.Error(), walk.MsgBoxIconError|walk.MsgBoxServiceNotification)
 	} else {

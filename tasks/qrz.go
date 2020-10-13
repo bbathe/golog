@@ -25,7 +25,7 @@ func QSLQrz() {
 	muxQrzUpload.Lock()
 	defer muxQrzUpload.Unlock()
 
-	qsos, err := qso.FindQSLsToSend(qso.QSLQrz, config.QSLDelay)
+	qsos, err := qso.FindQSLsToSend(qso.QSLQrz, config.LogbookServices.QSLDelay)
 	if err != nil {
 		ui.MsgError(nil, err)
 		log.Printf("%+v", err)
@@ -88,7 +88,7 @@ func uploadQSOsToQRZ(qsos []qso.QSO) error {
 		}
 
 		// set the other form fields required
-		err = w.WriteField("KEY", config.QRZ.APIKey)
+		err = w.WriteField("KEY", config.LogbookServices.QRZ.APIKey)
 		if err != nil {
 			log.Printf("%+v", err)
 			return err

@@ -23,7 +23,7 @@ func SourceFiles() {
 	defer muxSourceFiles.Unlock()
 
 	// form merged filename
-	mergedFile := filepath.Join(config.ArchiveDirectory, "QSOS-"+time.Now().UTC().Format("2006-Jan-02_15-04-05")+".adif")
+	mergedFile := filepath.Join(config.WorkingDirectory, "QSOS-"+time.Now().UTC().Format("2006-Jan-02_15-04-05")+".adif")
 
 	// create a file with changes from all the sourcefiles merged into one
 	err := createMergedChanges(mergedFile)
