@@ -14,6 +14,7 @@ codetest: lint vet
 build: default
 	mkdir -p target
 	rm -f target/$(package).exe target/$(package).log
+	cp lookups.yaml target/
 	$(shell go env GOPATH)/bin/rsrc -arch amd64 -manifest $(package).manifest -ico $(package).ico -o cmd/golog/$(package).syso
 	GOOS=windows GOARCH=amd64 CGO_ENABLED=1 CC="x86_64-w64-mingw32-gcc" go build -v -ldflags "-s -w -H=windowsgui" -o target/$(package).exe github.com/bbathe/golog/cmd/golog
 

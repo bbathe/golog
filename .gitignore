@@ -13,6 +13,7 @@
 
 # Configuration files
 *.yaml
+!lookups.yaml
 
 # Build target directory
 target/
