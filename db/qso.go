@@ -3,6 +3,7 @@ package db
 import (
 	"log"
 	"os"
+	"path/filepath"
 
 	"github.com/bbathe/golog/config"
 	"github.com/jmoiron/sqlx"
@@ -21,6 +22,32 @@ func OpenQSODb() error {
 		if err != nil {
 			log.Printf("%+v", err)
 			return err
+		}
+	}
+
+	// if config not set, make something up
+	if config.QSODatabase.Location == "" {
+		cwd, err := os.Getwd()
+		if err != nil {
+			log.Printf("%+v", err)
+			return err
+		}
+
+		config.QSODatabase.Location = filepath.Join(cwd, "golog.db")
+	}
+
+	// test if db file exists
+	_, err = os.Stat(config.QSODatabase.Location)
+	if err != nil {
+		if os.IsNotExist(err) {
+			err = NewQSODb()
+			if err != nil {
+				log.Printf("%+v", err)
+				return err
+			}
+
+			// NewQSODb leaves database open
+			return nil
 		}
 	}
 
@@ -81,6 +108,7 @@ func NewQSODb() error {
 		create table qsos (
 			id integer primary key asc not null,
 			loaded_at integer not null,
+			station_callsign text not null,
 			band text not null,
 			call text not null,
 			mode text not null,
@@ -101,7 +129,7 @@ func NewQSODb() error {
 
 	// index for what uniquely defines a qso
 	_, err = QSODb.Exec(`
-		create unique index unique_qso on qsos(band, call, mode, qso_date, qso_time)
+		create unique index unique_qso on qsos(station_callsign, band, call, mode, qso_date, qso_time)
 	`)
 	if err != nil {
 		log.Printf("%+v", err)

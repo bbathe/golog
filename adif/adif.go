@@ -14,22 +14,121 @@ import (
 	"github.com/bbathe/golog/models/qso"
 )
 
+var (
+	// regex's to extract data fields
+	reStationCallsign = regexp.MustCompile(`(?i)^station_callsign:(\d+)>(.+)`)
+	reBand            = regexp.MustCompile(`(?i)^band:(\d+)>(.+)`)
+	reCall            = regexp.MustCompile(`(?i)^call:(\d+)>(.+)`)
+	reMode            = regexp.MustCompile(`(?i)^mode:(\d+)>(.+)`)
+	reSubmode         = regexp.MustCompile(`(?i)^submode:(\d+)>(.+)`)
+	reDate            = regexp.MustCompile(`(?i)^qso_date:(\d+)>(.+)`)
+	reTime            = regexp.MustCompile(`(?i)^time_on:(\d+)>(.+)`)
+	reRSTRcvd         = regexp.MustCompile(`(?i)^rst_rcvd:(\d+)>(.+)`)
+	reRSTSent         = regexp.MustCompile(`(?i)^rst_sent:(\d+)>(.+)`)
+)
+
 // extractValue does the work to pull the value out of the ADIF field
 func extractValue(s string, r *regexp.Regexp) *string {
 	m := r.FindStringSubmatch(s)
 	if m != nil {
+		// get field length
 		i, err := strconv.Atoi(m[1])
 		if err != nil {
 			log.Printf("%+v", err)
 			return nil
 		}
 
+		// get field value
 		if i <= len(m[2]) {
 			ss := m[2][:i]
 			return &ss
 		}
 	}
 	return nil
+}
+
+func QSOFromADIFRecord(record string) (*qso.QSO, error) {
+	var err error
+	var qso qso.QSO
+	submode := ""
+
+	// look at every field, picking out what we want
+	fields := strings.Split(record, "<")
+	for _, field := range fields {
+		m := extractValue(field, reStationCallsign)
+		if m != nil {
+			qso.StationCallsign = strings.ToUpper(*m)
+			continue
+		}
+		m = extractValue(field, reBand)
+		if m != nil {
+			qso.Band = strings.ToLower(*m)
+			continue
+		}
+		m = extractValue(field, reCall)
+		if m != nil {
+			qso.Call = strings.ToUpper(*m)
+			continue
+		}
+		m = extractValue(field, reMode)
+		if m != nil {
+			qso.Mode = strings.ToUpper(*m)
+			continue
+		}
+		m = extractValue(field, reSubmode)
+		if m != nil {
+			submode = strings.ToUpper(*m)
+			continue
+		}
+		m = extractValue(field, reDate)
+		if m != nil {
+			t, err := time.Parse("20060102", *m)
+			if err != nil {
+				log.Printf("%+v", err)
+				continue
+			}
+
+			qso.Date = t.Format("2006-01-02")
+			continue
+		}
+		m = extractValue(field, reTime)
+		if m != nil {
+			var t time.Time
+
+			if len(*m) > 4 {
+				t, err = time.Parse("150405", *m)
+				if err != nil {
+					log.Printf("%+v", err)
+					continue
+				}
+			} else {
+				t, err = time.Parse("1504", *m)
+				if err != nil {
+					log.Printf("%+v", err)
+					continue
+				}
+			}
+
+			// we don't keep seconds
+			qso.Time = t.Format("15:04")
+			continue
+		}
+		m = extractValue(field, reRSTRcvd)
+		if m != nil {
+			qso.RSTRcvd = strings.ToUpper(*m)
+			continue
+		}
+		m = extractValue(field, reRSTSent)
+		if m != nil {
+			qso.RSTSent = strings.ToUpper(*m)
+			continue
+		}
+	}
+
+	// fixup mode/submode
+	qso.Mode = config.LookupMode(qso.Mode, submode)
+
+	return &qso, nil
 }
 
 // ReadFromFile reads QSOs from the ADIF file fname
@@ -43,16 +142,6 @@ func ReadFromFile(fname string, qsllotw, qsleqsl, qslqrz, qslclublog qso.QSLSent
 	}
 	defer file.Close()
 
-	// regex to extract data fields
-	reBand := regexp.MustCompile(`(?i)^band:(\d+)>(.+)`)
-	reCall := regexp.MustCompile(`(?i)^call:(\d+)>(.+)`)
-	reMode := regexp.MustCompile(`(?i)^mode:(\d+)>(.+)`)
-	reSubmode := regexp.MustCompile(`(?i)^submode:(\d+)>(.+)`)
-	reDate := regexp.MustCompile(`(?i)^qso_date:(\d+)>(.+)`)
-	reTime := regexp.MustCompile(`(?i)^time_on:(\d+)>(.+)`)
-	reRSTRcvd := regexp.MustCompile(`(?i)^rst_rcvd:(\d+)>(.+)`)
-	reRSTSent := regexp.MustCompile(`(?i)^rst_sent:(\d+)>(.+)`)
-
 	// we split on words, reconstruct the record and process record-by-record
 	// this is to handle multiline records, etc.
 	// for the fields we care about there are no embedded spaces so good enough for our purposes
@@ -60,7 +149,7 @@ func ReadFromFile(fname string, qsllotw, qsleqsl, qslqrz, qslclublog qso.QSLSent
 	scanner.Split(bufio.ScanWords)
 
 	var record string
-	records := make([]qso.QSO, 0, 128)
+	qsos := make([]qso.QSO, 0, 128)
 	for scanner.Scan() {
 		t := scanner.Text()
 		record += t
@@ -71,94 +160,33 @@ func ReadFromFile(fname string, qsllotw, qsleqsl, qslqrz, qslclublog qso.QSLSent
 		}
 
 		if strings.HasSuffix(t, "<eor>") {
-			submode := ""
-			r := qso.QSO{}
-
-			// look at every field, picking out what we want
-			fields := strings.Split(record, "<")
-			for _, field := range fields {
-				m := extractValue(field, reBand)
-				if m != nil {
-					r.Band = strings.ToLower(*m)
-					continue
-				}
-				m = extractValue(field, reCall)
-				if m != nil {
-					r.Call = strings.ToUpper(*m)
-					continue
-				}
-				m = extractValue(field, reMode)
-				if m != nil {
-					r.Mode = strings.ToUpper(*m)
-					continue
-				}
-				m = extractValue(field, reSubmode)
-				if m != nil {
-					submode = strings.ToUpper(*m)
-					continue
-				}
-				m = extractValue(field, reDate)
-				if m != nil {
-					t, err := time.Parse("20060102", *m)
-					if err != nil {
-						log.Printf("%+v", err)
-						continue
-					}
-
-					r.Date = t.Format("2006-01-02")
-					continue
-				}
-				m = extractValue(field, reTime)
-				if m != nil {
-					var t time.Time
-
-					if len(*m) > 4 {
-						t, err = time.Parse("150405", *m)
-						if err != nil {
-							log.Printf("%+v", err)
-							continue
-						}
-					} else {
-						t, err = time.Parse("1504", *m)
-						if err != nil {
-							log.Printf("%+v", err)
-							continue
-						}
-					}
-
-					// we don't keep seconds
-					r.Time = t.Format("15:04")
-
-					continue
-				}
-				m = extractValue(field, reRSTRcvd)
-				if m != nil {
-					r.RSTRcvd = strings.ToUpper(*m)
-					continue
-				}
-				m = extractValue(field, reRSTSent)
-				if m != nil {
-					r.RSTSent = strings.ToUpper(*m)
-					continue
-				}
+			// get qso from record
+			var qso *qso.QSO
+			qso, err = QSOFromADIFRecord(record)
+			if err != nil {
+				log.Println(record)
+				log.Printf("%+v", err)
+				record = ""
+				continue
 			}
 
-			// fixup mode/submode
-			r.Mode = config.LookupMode(r.Mode, submode)
+			// override/default some fields
+			qso.LoadedAt = loadedAt
+			qso.QSLLotw = qsllotw
+			qso.QSLEqsl = qsleqsl
+			qso.QSLQrz = qslqrz
+			qso.QSLClublog = qslclublog
+			if qso.StationCallsign == "" {
+				qso.StationCallsign = config.Station.Callsign
+			}
 
-			// set to what caller wants
-			r.QSLLotw = qsllotw
-			r.QSLEqsl = qsleqsl
-			r.QSLQrz = qslqrz
-			r.QSLClublog = qslclublog
-
-			// when loaded
-			r.LoadedAt = loadedAt
-
-			if r.Validate(false) == nil {
-				records = append(records, r)
+			// make sure all is good
+			err = qso.Validate(false)
+			if err != nil {
+				log.Println(record)
+				log.Printf("%+v", err)
 			} else {
-				log.Print(record)
+				qsos = append(qsos, *qso)
 			}
 
 			record = ""
@@ -169,7 +197,7 @@ func ReadFromFile(fname string, qsllotw, qsleqsl, qslqrz, qslclublog qso.QSLSent
 		return nil, err
 	}
 
-	return records, nil
+	return qsos, nil
 }
 
 // QSOToADIFRecord returns the adif record from the qso
@@ -208,7 +236,9 @@ func QSOToADIFRecord(qso qso.QSO) (string, error) {
 	}
 
 	return fmt.Sprintf(
-		"<call:%d>%s<band:%d>%s<mode:%d>%s%s<qso_date:%d>%s<time_on:%d>%s%s%s<eor>\n",
+		"<station_callsign:%d>%s<call:%d>%s<band:%d>%s<mode:%d>%s%s<qso_date:%d>%s<time_on:%d>%s%s%s<eor>\n",
+		len(qso.StationCallsign),
+		qso.StationCallsign,
 		len(qso.Call),
 		qso.Call,
 		len(qso.Band),

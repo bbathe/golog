@@ -25,8 +25,9 @@ const (
 )
 
 type QSO struct {
-	ID       int64 `db:"id"`
-	LoadedAt int64 `db:"loaded_at"`
+	ID              int64  `db:"id"`
+	LoadedAt        int64  `db:"loaded_at"`
+	StationCallsign string `db:"station_callsign"`
 
 	Band    string `db:"band"`
 	Call    string `db:"call"`
@@ -46,6 +47,7 @@ const (
 	stmtQSOInsert = `
 		insert into qsos (
 			loaded_at,
+			station_callsign,
 			band,
 			call,
 			mode,
@@ -59,6 +61,7 @@ const (
 			qsl_clublog
 		) values (
 			:loaded_at,
+			:station_callsign,
 			:band,
 			:call,
 			:mode,
@@ -71,12 +74,13 @@ const (
 			:qsl_qrz,
 			:qsl_clublog
 		)
-		on conflict(band, call, mode, qso_date, qso_time) do nothing
+		on conflict(station_callsign, band, call, mode, qso_date, qso_time) do nothing
 	`
 
 	stmtQSOOnlyInsert = `
 		insert into qsos (
 			loaded_at,
+			station_callsign,
 			band,
 			call,
 			mode,
@@ -86,6 +90,7 @@ const (
 			rst_sent
 		) values (
 			:loaded_at,
+			:station_callsign,
 			:band,
 			:call,
 			:mode,
@@ -94,13 +99,14 @@ const (
 			:rst_rcvd,
 			:rst_sent
 		)
-		on conflict(band, call, mode, qso_date, qso_time) do nothing
+		on conflict(station_callsign, band, call, mode, qso_date, qso_time) do nothing
 	`
 
 	stmtQSOSelectAll = `
 		select
 			id,
 			loaded_at,
+			station_callsign,
 			band,
 			call,
 			mode,
@@ -122,7 +128,8 @@ const (
 		from
 			qsos
 		where
-			band = :band
+			station_callsign = :station_callsign
+			and band = :band
 			and call = :call
 			and mode = :mode
 			and qso_date = :qso_date
@@ -135,6 +142,7 @@ const (
 
 	stmtQSOOnlyUpdate = `
 		update qsos set
+			station_callsign = :station_callsign,
 			band = :band,
 			call = :call,
 			mode = :mode,
@@ -156,13 +164,13 @@ func (qso *QSO) Validate(checkID bool) error {
 		log.Printf("%+v", err)
 		return err
 	}
-	if qso.LoadedAt == 0 {
-		err := fmt.Errorf(missingField, "LoadedAt")
+	if qso.Date == "" {
+		err := fmt.Errorf(missingField, "Date")
 		log.Printf("%+v", err)
 		return err
 	}
-	if qso.Band == "" {
-		err := fmt.Errorf(missingField, "Band")
+	if qso.Time == "" {
+		err := fmt.Errorf(missingField, "Time")
 		log.Printf("%+v", err)
 		return err
 	}
@@ -171,18 +179,23 @@ func (qso *QSO) Validate(checkID bool) error {
 		log.Printf("%+v", err)
 		return err
 	}
+	if qso.Band == "" {
+		err := fmt.Errorf(missingField, "Band")
+		log.Printf("%+v", err)
+		return err
+	}
 	if qso.Mode == "" {
 		err := fmt.Errorf(missingField, "Mode")
 		log.Printf("%+v", err)
 		return err
 	}
-	if qso.Date == "" {
-		err := fmt.Errorf(missingField, "Date")
+	if qso.LoadedAt == 0 {
+		err := fmt.Errorf(missingField, "LoadedAt")
 		log.Printf("%+v", err)
 		return err
 	}
-	if qso.Time == "" {
-		err := fmt.Errorf(missingField, "Time")
+	if qso.StationCallsign == "" {
+		err := fmt.Errorf(missingField, "StationCallsign")
 		log.Printf("%+v", err)
 		return err
 	}

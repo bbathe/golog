@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/bbathe/golog/adif"
 	"github.com/bbathe/golog/config"
 	"golang.org/x/sys/windows"
 
@@ -372,8 +371,9 @@ func GoLogWindow() error {
 						OnClicked: func() {
 							n := time.Now().UTC()
 							*selectedQSO = qso.QSO{
-								Date: n.Format("2006-01-02"),
-								Time: n.Format("15:04"),
+								StationCallsign: config.Station.Callsign,
+								Date:            n.Format("2006-01-02"),
+								Time:            n.Format("15:04"),
 							}
 
 							// refresh
@@ -402,7 +402,9 @@ func GoLogWindow() error {
 								return
 							}
 
-							*selectedQSO = qso.QSO{}
+							*selectedQSO = qso.QSO{
+								StationCallsign: config.Station.Callsign,
+							}
 
 							// refresh
 							err = bndSelectedQSO.Reset()
@@ -432,7 +434,9 @@ func GoLogWindow() error {
 								return
 							}
 
-							*selectedQSO = qso.QSO{}
+							*selectedQSO = qso.QSO{
+								StationCallsign: config.Station.Callsign,
+							}
 
 							// refresh
 							err = bndSelectedQSO.Reset()
@@ -462,7 +466,9 @@ func GoLogWindow() error {
 								return
 							}
 
-							*selectedQSO = qso.QSO{}
+							*selectedQSO = qso.QSO{
+								StationCallsign: config.Station.Callsign,
+							}
 
 							// refresh
 							err = bndSelectedQSO.Reset()
@@ -508,7 +514,9 @@ func GoLogWindow() error {
 							Width: 50,
 						},
 						OnClicked: func() {
-							*selectedQSO = qso.QSO{}
+							*selectedQSO = qso.QSO{
+								StationCallsign: config.Station.Callsign,
+							}
 							qsomodel.ClearSearch()
 
 							// refresh
@@ -578,32 +586,6 @@ func GoLogWindow() error {
 	mainWin.Run()
 
 	return nil
-}
-
-// exportADIF drives the user thru doing an ADIF export
-func exportADIF(parent walk.Form) {
-	fname, err := OpenFilePicker(parent, "Select file to export QSOs", "ADIF Files (*.adi;*.adif)|*.adi;*.adif|All Files (*.*)|*.*")
-	if err != nil {
-		MsgError(nil, err)
-		log.Printf("%+v", err)
-		return
-	}
-
-	if fname != nil {
-		qs, err := qso.All()
-		if err != nil {
-			MsgError(nil, err)
-			log.Printf("%+v", err)
-			return
-		}
-
-		err = adif.WriteToFile(qs, *fname)
-		if err != nil {
-			MsgError(nil, err)
-			log.Printf("%+v", err)
-			return
-		}
-	}
 }
 
 // // importTQSLconfig drives the user thru doing an import of the lookup data from the TQSL config.xml

@@ -14,6 +14,7 @@ var (
 	adifDlg *walk.Dialog
 )
 
+// importADIF drives the user thru importing QSOs from an ADIF file
 func importADIF(parent walk.Form) error {
 	var leADIFFile *walk.LineEdit
 
@@ -174,4 +175,30 @@ func importADIF(parent walk.Form) error {
 	adifDlg.Run()
 
 	return nil
+}
+
+// exportADIF drives the user thru exporting QSOs to an ADIF file
+func exportADIF(parent walk.Form) {
+	fname, err := SaveFilePicker(parent, "Select file to export QSOs", "ADIF Files (*.adi;*.adif)|*.adi;*.adif|All Files (*.*)|*.*")
+	if err != nil {
+		MsgError(nil, err)
+		log.Printf("%+v", err)
+		return
+	}
+
+	if fname != nil {
+		qs, err := qso.All()
+		if err != nil {
+			MsgError(nil, err)
+			log.Printf("%+v", err)
+			return
+		}
+
+		err = adif.WriteToFile(qs, *fname)
+		if err != nil {
+			MsgError(nil, err)
+			log.Printf("%+v", err)
+			return
+		}
+	}
 }

@@ -44,6 +44,8 @@ func RefreshPosts() {
 }
 
 func AddSpot(timestamp, call, frequency, comments string) error {
+	log.Println(timestamp, call, frequency, comments)
+
 	// make timestamps look how we want
 	t, err := time.Parse("1504", timestamp)
 	if err != nil {
