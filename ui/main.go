@@ -122,7 +122,14 @@ func GoLogWindow() error {
 					declarative.Action{
 						Text: "&Import...",
 						OnTriggered: func() {
-							importADIF(mainWin, qsomodel)
+							err := importADIF(mainWin)
+							if err != nil {
+								MsgError(mainWin, err)
+								log.Printf("%+v", err)
+								return
+							}
+
+							qsomodel.ResetRows()
 						},
 					},
 					declarative.Action{
@@ -571,33 +578,6 @@ func GoLogWindow() error {
 	mainWin.Run()
 
 	return nil
-}
-
-// importADIF drives the user thru doing an ADIF import
-func importADIF(parent walk.Form, model *QSOModel) {
-	fname, err := OpenFilePicker(parent, "Select file to import", "ADIF Files (*.adi;*.adif)|*.adi;*.adif|All Files (*.*)|*.*")
-	if err != nil {
-		MsgError(nil, err)
-		log.Printf("%+v", err)
-		return
-	}
-
-	if fname != nil {
-		qs, err := adif.ReadFromFile(*fname, qso.Sent)
-		if err != nil {
-			MsgError(nil, err)
-			log.Printf("%+v", err)
-			return
-		}
-
-		err = qso.BulkAdd(qs)
-		if err != nil {
-			MsgError(nil, err)
-			log.Printf("%+v", err)
-			return
-		}
-		model.ResetRows()
-	}
 }
 
 // exportADIF drives the user thru doing an ADIF export

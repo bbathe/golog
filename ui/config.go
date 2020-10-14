@@ -451,126 +451,6 @@ func tabConfigLogbookServices() declarative.TabPage {
 				},
 			},
 			declarative.RadioButtonGroupBox{
-				Title:  "Club Log",
-				Layout: declarative.HBox{MarginsZero: true},
-				DataBinder: declarative.DataBinder{
-					DataSource:     &newConfig.LogbookServices.ClubLog,
-					ErrorPresenter: declarative.ToolTipErrorPresenter{},
-				},
-				Children: []declarative.Widget{
-					declarative.Composite{
-						Layout: declarative.VBox{},
-						Children: []declarative.Widget{
-							declarative.Composite{
-								Layout: declarative.VBox{},
-								Children: []declarative.Widget{
-									declarative.Label{
-										Text: "Email",
-									},
-									declarative.LineEdit{
-										AssignTo: &leCLEmail,
-										Text:     declarative.Bind("Email"),
-										OnTextChanged: func() {
-											newConfig.LogbookServices.ClubLog.Email = leCLEmail.Text()
-										},
-									},
-								},
-							},
-							declarative.Composite{
-								Layout: declarative.VBox{},
-								Children: []declarative.Widget{
-									declarative.Label{
-										Text: "Password",
-									},
-									declarative.LineEdit{
-										AssignTo: &leCLPassword,
-										Text:     declarative.Bind("Password"),
-										OnTextChanged: func() {
-											newConfig.LogbookServices.ClubLog.Password = leCLPassword.Text()
-										},
-									},
-								},
-							},
-						},
-					},
-					declarative.Composite{
-						Layout: declarative.VBox{},
-						Children: []declarative.Widget{
-							declarative.Composite{
-								Layout: declarative.VBox{},
-								Children: []declarative.Widget{
-									declarative.Label{
-										Text: "Callsign",
-									},
-									declarative.LineEdit{
-										AssignTo: &leCLCallsign,
-										Text:     declarative.Bind("Callsign"),
-										OnTextChanged: func() {
-											newConfig.LogbookServices.ClubLog.Callsign = leCLCallsign.Text()
-										},
-									},
-								},
-							},
-							declarative.Composite{
-								Layout: declarative.VBox{},
-								Children: []declarative.Widget{
-									declarative.Label{
-										Text: "API Key",
-									},
-									declarative.LineEdit{
-										AssignTo: &leCLAPIKey,
-										Text:     declarative.Bind("APIKey"),
-										OnTextChanged: func() {
-											newConfig.LogbookServices.ClubLog.APIKey = leCLAPIKey.Text()
-										},
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-			declarative.RadioButtonGroupBox{
-				Title:  "eQSL",
-				Layout: declarative.HBox{MarginsZero: true},
-				DataBinder: declarative.DataBinder{
-					DataSource:     &newConfig.LogbookServices.EQSL,
-					ErrorPresenter: declarative.ToolTipErrorPresenter{},
-				},
-				Children: []declarative.Widget{
-					declarative.Composite{
-						Layout: declarative.VBox{},
-						Children: []declarative.Widget{
-							declarative.Label{
-								Text: "Username",
-							},
-							declarative.LineEdit{
-								AssignTo: &leEQSLUsername,
-								Text:     declarative.Bind("Username"),
-								OnTextChanged: func() {
-									newConfig.LogbookServices.EQSL.Username = leEQSLUsername.Text()
-								},
-							},
-						},
-					},
-					declarative.Composite{
-						Layout: declarative.VBox{},
-						Children: []declarative.Widget{
-							declarative.Label{
-								Text: "Password",
-							},
-							declarative.LineEdit{
-								AssignTo: &leEQSLPassword,
-								Text:     declarative.Bind("Password"),
-								OnTextChanged: func() {
-									newConfig.LogbookServices.EQSL.Password = leEQSLPassword.Text()
-								},
-							},
-						},
-					},
-				},
-			},
-			declarative.RadioButtonGroupBox{
 				Title:  "LoTW",
 				Layout: declarative.HBox{MarginsZero: true},
 				DataBinder: declarative.DataBinder{
@@ -648,6 +528,46 @@ func tabConfigLogbookServices() declarative.TabPage {
 				},
 			},
 			declarative.RadioButtonGroupBox{
+				Title:  "eQSL",
+				Layout: declarative.HBox{MarginsZero: true},
+				DataBinder: declarative.DataBinder{
+					DataSource:     &newConfig.LogbookServices.EQSL,
+					ErrorPresenter: declarative.ToolTipErrorPresenter{},
+				},
+				Children: []declarative.Widget{
+					declarative.Composite{
+						Layout: declarative.VBox{},
+						Children: []declarative.Widget{
+							declarative.Label{
+								Text: "Username",
+							},
+							declarative.LineEdit{
+								AssignTo: &leEQSLUsername,
+								Text:     declarative.Bind("Username"),
+								OnTextChanged: func() {
+									newConfig.LogbookServices.EQSL.Username = leEQSLUsername.Text()
+								},
+							},
+						},
+					},
+					declarative.Composite{
+						Layout: declarative.VBox{},
+						Children: []declarative.Widget{
+							declarative.Label{
+								Text: "Password",
+							},
+							declarative.LineEdit{
+								AssignTo: &leEQSLPassword,
+								Text:     declarative.Bind("Password"),
+								OnTextChanged: func() {
+									newConfig.LogbookServices.EQSL.Password = leEQSLPassword.Text()
+								},
+							},
+						},
+					},
+				},
+			},
+			declarative.RadioButtonGroupBox{
 				Title:  "QRZ",
 				Layout: declarative.HBox{MarginsZero: true},
 				DataBinder: declarative.DataBinder{
@@ -666,6 +586,86 @@ func tabConfigLogbookServices() declarative.TabPage {
 								Text:     declarative.Bind("APIKey"),
 								OnTextChanged: func() {
 									newConfig.LogbookServices.QRZ.APIKey = leQRZAPIKey.Text()
+								},
+							},
+						},
+					},
+				},
+			},
+			declarative.RadioButtonGroupBox{
+				Title:  "Club Log",
+				Layout: declarative.HBox{MarginsZero: true},
+				DataBinder: declarative.DataBinder{
+					DataSource:     &newConfig.LogbookServices.ClubLog,
+					ErrorPresenter: declarative.ToolTipErrorPresenter{},
+				},
+				Children: []declarative.Widget{
+					declarative.Composite{
+						Layout: declarative.VBox{},
+						Children: []declarative.Widget{
+							declarative.Composite{
+								Layout: declarative.VBox{},
+								Children: []declarative.Widget{
+									declarative.Label{
+										Text: "Email",
+									},
+									declarative.LineEdit{
+										AssignTo: &leCLEmail,
+										Text:     declarative.Bind("Email"),
+										OnTextChanged: func() {
+											newConfig.LogbookServices.ClubLog.Email = leCLEmail.Text()
+										},
+									},
+								},
+							},
+							declarative.Composite{
+								Layout: declarative.VBox{},
+								Children: []declarative.Widget{
+									declarative.Label{
+										Text: "Password",
+									},
+									declarative.LineEdit{
+										AssignTo: &leCLPassword,
+										Text:     declarative.Bind("Password"),
+										OnTextChanged: func() {
+											newConfig.LogbookServices.ClubLog.Password = leCLPassword.Text()
+										},
+									},
+								},
+							},
+						},
+					},
+					declarative.Composite{
+						Layout: declarative.VBox{},
+						Children: []declarative.Widget{
+							declarative.Composite{
+								Layout: declarative.VBox{},
+								Children: []declarative.Widget{
+									declarative.Label{
+										Text: "Callsign",
+									},
+									declarative.LineEdit{
+										AssignTo: &leCLCallsign,
+										Text:     declarative.Bind("Callsign"),
+										OnTextChanged: func() {
+											newConfig.LogbookServices.ClubLog.Callsign = leCLCallsign.Text()
+										},
+									},
+								},
+							},
+							declarative.Composite{
+								Layout: declarative.VBox{},
+								Children: []declarative.Widget{
+									declarative.Label{
+										Text: "API Key",
+									},
+									declarative.LineEdit{
+										AssignTo: &leCLAPIKey,
+										Text:     declarative.Bind("APIKey"),
+										OnTextChanged: func() {
+											newConfig.LogbookServices.ClubLog.APIKey = leCLAPIKey.Text()
+										},
+									},
 								},
 							},
 						},

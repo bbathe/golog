@@ -55,7 +55,7 @@ func SourceFiles() {
 	}
 
 	// read in qsos
-	qsos, err := adif.ReadFromFile(mergedFile, qso.NotSent)
+	qsos, err := adif.ReadFromFile(mergedFile, qso.NotSent, qso.NotSent, qso.NotSent, qso.NotSent)
 	if err != nil {
 		ui.MsgError(nil, err)
 		log.Printf("%+v", err)

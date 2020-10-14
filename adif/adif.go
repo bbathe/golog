@@ -33,7 +33,7 @@ func extractValue(s string, r *regexp.Regexp) *string {
 }
 
 // ReadFromFile reads QSOs from the ADIF file fname
-func ReadFromFile(fname string, qslsent qso.QSLSent) ([]qso.QSO, error) {
+func ReadFromFile(fname string, qsllotw, qsleqsl, qslqrz, qslclublog qso.QSLSent) ([]qso.QSO, error) {
 	loadedAt := time.Now().Unix()
 
 	file, err := os.Open(fname)
@@ -146,11 +146,11 @@ func ReadFromFile(fname string, qslsent qso.QSLSent) ([]qso.QSO, error) {
 			// fixup mode/submode
 			r.Mode = config.LookupMode(r.Mode, submode)
 
-			// assume all QSLs sent
-			r.QSLLotw = qslsent
-			r.QSLEqsl = qslsent
-			r.QSLQrz = qslsent
-			r.QSLClublog = qslsent
+			// set to what caller wants
+			r.QSLLotw = qsllotw
+			r.QSLEqsl = qsleqsl
+			r.QSLQrz = qslqrz
+			r.QSLClublog = qslclublog
 
 			// when loaded
 			r.LoadedAt = loadedAt
