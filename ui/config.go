@@ -2,7 +2,6 @@ package ui
 
 import (
 	"log"
-	"os"
 
 	"github.com/bbathe/golog/config"
 	"github.com/bbathe/golog/db"
@@ -12,77 +11,157 @@ import (
 )
 
 var (
-	configDlg *walk.Dialog
-
 	newConfig config.Configuration
+
+	configForm walk.Form
 )
 
-func optionsWindows(parent *walk.MainWindow) error {
-	// make working copy
+func OptionsWindow(parent *walk.MainWindow) error {
+	// make working copy of current config
 	err := config.Copy(&newConfig)
 	if err != nil {
-		MsgError(parent, err)
 		log.Printf("%+v", err)
-		return err
 	}
 
-	err = declarative.Dialog{
-		AssignTo:  &configDlg,
-		Title:     appName + " Options",
-		Icon:      appIcon,
-		FixedSize: true,
-		MinSize:   declarative.Size{Width: 800},
-		Font: declarative.Font{
-			Family:    "MS Shell Dlg 2",
-			PointSize: 10,
-		},
-		Layout: declarative.VBox{},
-		Children: []declarative.Widget{
-			declarative.TabWidget{
-				Alignment: declarative.AlignHNearVNear,
-				Pages: []declarative.TabPage{
-					tabConfigGeneral(),
-					tabConfigSourceFiles(),
-					tabConfigLogbookServices(),
-					tabConfigDXClusters(),
-				},
-			},
-			declarative.Composite{
-				Layout: declarative.HBox{},
-				Children: []declarative.Widget{
-					declarative.HSpacer{},
-					declarative.PushButton{
-						Text: "OK",
-						OnClicked: func() {
-							// persist config
-							err := config.Reload(newConfig)
-							if err != nil {
-								MsgError(configDlg, err)
-								log.Printf("%+v", err)
-								return
-							}
+	if parent == nil {
+		var configWin *walk.MainWindow
 
-							configDlg.Accept()
-						},
+		// if no parent, make a temporary one
+		err := declarative.MainWindow{
+			AssignTo: &configWin,
+			Title:    appName + " Options",
+			Icon:     appIcon,
+			Visible:  false,
+			MinSize:  declarative.Size{Width: 800},
+			Font: declarative.Font{
+				Family:    "MS Shell Dlg 2",
+				PointSize: 10,
+			},
+			Layout: declarative.VBox{},
+			Children: []declarative.Widget{
+				declarative.TabWidget{
+					Alignment: declarative.AlignHNearVNear,
+					Pages: []declarative.TabPage{
+						tabConfigGeneral(),
+						tabConfigSourceFiles(),
+						tabConfigLogbookServices(),
+						tabConfigDXClusters(),
 					},
-					declarative.PushButton{
-						Text: "Cancel",
-						OnClicked: func() {
-							configDlg.Cancel()
+				},
+				declarative.Composite{
+					Layout: declarative.HBox{},
+					Children: []declarative.Widget{
+						declarative.HSpacer{},
+						declarative.PushButton{
+							Text: "OK",
+							OnClicked: func() {
+								// persist config
+								err := config.Reload(newConfig)
+								if err != nil {
+									MsgError(nil, err)
+									log.Printf("%+v", err)
+									return
+								}
+
+								configWin.Close()
+							},
+						},
+						declarative.PushButton{
+							Text: "Cancel",
+							OnClicked: func() {
+								configWin.Close()
+							},
 						},
 					},
 				},
 			},
-		},
-	}.Create(parent)
-	if err != nil {
-		MsgError(parent, err)
-		log.Printf("%+v", err)
-		return err
+		}.Create()
+		if err != nil {
+			MsgError(nil, err)
+			log.Printf("%+v", err)
+			return err
+		}
+
+		// set common parent for all pop-ups, etc.
+		configForm = configWin.Form()
+
+		// make visible
+		configWin.SetVisible(true)
+
+		// start message loop
+		configWin.Run()
+	} else {
+		var configDlg *walk.Dialog
+
+		err = declarative.Dialog{
+			AssignTo:  &configDlg,
+			Title:     appName + " Options",
+			Icon:      appIcon,
+			FixedSize: true,
+			MinSize:   declarative.Size{Width: 800},
+			Font: declarative.Font{
+				Family:    "MS Shell Dlg 2",
+				PointSize: 10,
+			},
+			Layout: declarative.VBox{},
+			Children: []declarative.Widget{
+				declarative.TabWidget{
+					Alignment: declarative.AlignHNearVNear,
+					Pages: []declarative.TabPage{
+						tabConfigGeneral(),
+						tabConfigSourceFiles(),
+						tabConfigLogbookServices(),
+						tabConfigDXClusters(),
+					},
+				},
+				declarative.Composite{
+					Layout: declarative.HBox{},
+					Children: []declarative.Widget{
+						declarative.HSpacer{},
+						declarative.PushButton{
+							Text: "OK",
+							OnClicked: func() {
+								// persist config
+								err := config.Reload(newConfig)
+								if err != nil {
+									MsgError(configDlg, err)
+									log.Printf("%+v", err)
+									return
+								}
+
+								// reopen database
+								err = db.OpenQSODb()
+								if err != nil {
+									MsgError(configDlg, err)
+									log.Printf("%+v", err)
+									return
+								}
+
+								configDlg.Accept()
+							},
+						},
+						declarative.PushButton{
+							Text: "Cancel",
+							OnClicked: func() {
+								configDlg.Cancel()
+							},
+						},
+					},
+				},
+			},
+		}.Create(parent)
+		if err != nil {
+			MsgError(parent, err)
+			log.Printf("%+v", err)
+			return err
+		}
+
+		// set common parent for all pop-ups, etc.
+		configForm = configDlg.Form()
+
+		// start message loop
+		configDlg.Run()
 	}
-
-	// start message loop
-	configDlg.Run()
 
 	return nil
 }
@@ -111,6 +190,7 @@ func tabConfigGeneral() declarative.TabPage {
 					declarative.LineEdit{
 						AssignTo: &leCallsign,
 						Text:     declarative.Bind("Callsign"),
+						CaseMode: declarative.CaseModeUpper,
 						OnTextChanged: func() {
 							newConfig.Station.Callsign = leCallsign.Text()
 						},
@@ -147,9 +227,9 @@ func tabConfigGeneral() declarative.TabPage {
 									PointSize: 9,
 								},
 								OnClicked: func() {
-									fname, err := OpenFilePicker(configDlg, "Select QSO database file", "DB Files (*.db)|*.db|All Files (*.*)|*.*")
+									fname, err := SaveFilePicker(configForm, "Select QSO database file", "DB Files (*.db)|*.db|All Files (*.*)|*.*")
 									if err != nil {
-										MsgError(configDlg, err)
+										MsgError(configForm, err)
 										log.Printf("%+v", err)
 										return
 									}
@@ -157,22 +237,7 @@ func tabConfigGeneral() declarative.TabPage {
 									if fname != nil {
 										err = leQSODatabase.SetText(*fname)
 										if err != nil {
-											MsgError(configDlg, err)
-											log.Printf("%+v", err)
-											return
-										}
-
-										// if file doesn't exist, create new db
-										_, err = os.Stat(*fname)
-										if err != nil {
-											if os.IsNotExist(err) {
-												err = db.NewQSODb()
-											} else {
-												err = db.OpenQSODb()
-											}
-										}
-										if err != nil {
-											MsgError(configDlg, err)
+											MsgError(configForm, err)
 											log.Printf("%+v", err)
 											return
 										}
@@ -257,9 +322,9 @@ func tabConfigGeneral() declarative.TabPage {
 									PointSize: 9,
 								},
 								OnClicked: func() {
-									dname, err := OpenFolderPicker(configDlg, "Choose folder for temporary working files")
+									dname, err := OpenFolderPicker(configForm, "Choose folder for temporary working files")
 									if err != nil {
-										MsgError(configDlg, err)
+										MsgError(configForm, err)
 										log.Printf("%+v", err)
 										return
 									}
@@ -267,7 +332,7 @@ func tabConfigGeneral() declarative.TabPage {
 									if dname != nil {
 										err = leWorkingDirectory.SetText(*dname)
 										if err != nil {
-											MsgError(configDlg, err)
+											MsgError(configForm, err)
 											log.Printf("%+v", err)
 											return
 										}
@@ -342,9 +407,9 @@ func tabConfigSourceFiles() declarative.TabPage {
 								},
 								OnClicked: func() {
 									// prompt user for file
-									fname, err := OpenFilePicker(configDlg, "Select source file", "ADIF Files (*.adi;*.adif)|*.adi;*.adif|All Files (*.*)|*.*")
+									fname, err := OpenFilePicker(configForm, "Select source file", "ADIF Files (*.adi;*.adif)|*.adi;*.adif|All Files (*.*)|*.*")
 									if err != nil {
-										MsgError(configDlg, err)
+										MsgError(configForm, err)
 										log.Printf("%+v", err)
 										return
 									}
@@ -352,7 +417,7 @@ func tabConfigSourceFiles() declarative.TabPage {
 									if fname != nil {
 										err = leSourceFileLocation.SetText(*fname)
 										if err != nil {
-											MsgError(configDlg, err)
+											MsgError(configForm, err)
 											log.Printf("%+v", err)
 											return
 										}
@@ -374,7 +439,7 @@ func tabConfigSourceFiles() declarative.TabPage {
 
 										err := leSourceFileLocation.SetText("")
 										if err != nil {
-											MsgError(configDlg, err)
+											MsgError(configForm, err)
 											log.Printf("%+v", err)
 											return
 										}
@@ -489,9 +554,9 @@ func tabConfigLogbookServices() declarative.TabPage {
 										},
 										OnClicked: func() {
 											// prompt user for file
-											fname, err := OpenFilePicker(configDlg, "Select TQSL executable", "EXE Files (*.exe)|*.exe|All Files (*.*)|*.*")
+											fname, err := OpenFilePicker(configForm, "Select TQSL executable", "EXE Files (*.exe)|*.exe|All Files (*.*)|*.*")
 											if err != nil {
-												MsgError(configDlg, err)
+												MsgError(configForm, err)
 												log.Printf("%+v", err)
 												return
 											}
@@ -499,7 +564,7 @@ func tabConfigLogbookServices() declarative.TabPage {
 											if fname != nil {
 												err = leTQSLExeLocation.SetText(*fname)
 												if err != nil {
-													MsgError(configDlg, err)
+													MsgError(configForm, err)
 													log.Printf("%+v", err)
 													return
 												}

@@ -12,7 +12,6 @@ import (
 	"github.com/bbathe/golog/adif"
 	"github.com/bbathe/golog/config"
 	"github.com/bbathe/golog/models/qso"
-	"github.com/bbathe/golog/ui"
 )
 
 var muxLotwUpload sync.Mutex
@@ -24,7 +23,6 @@ func QSLLotw() {
 
 	qsos, err := qso.FindQSLsToSend(qso.QSLLotw, config.LogbookServices.QSLDelay)
 	if err != nil {
-		ui.MsgError(nil, err)
 		log.Printf("%+v", err)
 		return
 	}
@@ -32,12 +30,9 @@ func QSLLotw() {
 	if len(qsos) > 0 {
 		err = uploadQSOsToLoTW(qsos)
 		if err != nil {
-			ui.MsgError(nil, err)
 			log.Printf("%+v", err)
 			return
 		}
-
-		ui.RefreshQSOs()
 	}
 }
 
@@ -48,7 +43,6 @@ func QSLLotwFinal() {
 
 	qsos, err := qso.FindQSLsToSend(qso.QSLLotw, 0)
 	if err != nil {
-		ui.MsgError(nil, err)
 		log.Printf("%+v", err)
 		return
 	}
@@ -56,12 +50,9 @@ func QSLLotwFinal() {
 	if len(qsos) > 0 {
 		err = uploadQSOsToLoTW(qsos)
 		if err != nil {
-			ui.MsgError(nil, err)
 			log.Printf("%+v", err)
 			return
 		}
-
-		ui.RefreshQSOs()
 	}
 }
 

@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/bbathe/golog/config"
-	"github.com/bbathe/golog/ui"
 )
 
 var muxCleanup sync.Mutex
@@ -17,10 +16,13 @@ func Cleanup() {
 	muxCleanup.Lock()
 	defer muxCleanup.Unlock()
 
+	if config.WorkingDirectory == "" {
+		return
+	}
+
 	// cleanup archive directory
 	f, err := os.Open(config.WorkingDirectory)
 	if err != nil {
-		ui.MsgError(nil, err)
 		log.Printf("%+v", err)
 		return
 	}
@@ -28,7 +30,6 @@ func Cleanup() {
 
 	files, err := f.Readdir(-1)
 	if err != nil {
-		ui.MsgError(nil, err)
 		log.Printf("%+v", err)
 		return
 	}
@@ -40,7 +41,6 @@ func Cleanup() {
 		if file.ModTime().Before(then) {
 			err = os.Remove(filepath.Join(config.WorkingDirectory, file.Name()))
 			if err != nil && !os.IsNotExist(err) {
-				ui.MsgError(nil, err)
 				log.Printf("%+v", err)
 				return
 			}

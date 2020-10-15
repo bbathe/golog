@@ -3,22 +3,11 @@ package ui
 import (
 	"log"
 	"sort"
-	"strconv"
-	"strings"
-	"time"
 
-	"github.com/bbathe/golog/config"
+	"github.com/bbathe/golog/models/spot"
 	"github.com/lxn/walk"
 	"github.com/lxn/walk/declarative"
 )
-
-type DXClusterSpot struct {
-	Timestamp string
-	Call      string
-	Band      string
-	Frequency string
-	Comments  string
-}
 
 // DXClusterModel is used to display cluster spots in the main windows TableView
 type DXClusterModel struct {
@@ -26,57 +15,22 @@ type DXClusterModel struct {
 	walk.SorterBase
 	sortColumn int
 	sortOrder  walk.SortOrder
-	items      []*DXClusterSpot
+	items      []*spot.Spot
+	lastID     int64
 }
 
 func NewDXClusterModel() *DXClusterModel {
 	m := new(DXClusterModel)
-	m.sortColumn = 1
-	m.sortOrder = walk.SortDescending
+	m.sortColumn = 99
+	m.sortOrder = walk.SortAscending
 	m.ResetRows()
 
-	return m
-}
-
-// RefreshPosts is called by various places in the app to reload the HamAlert TableView
-func RefreshPosts() {
-	dxclustermodel.ResetRows()
-}
-
-func AddSpot(timestamp, call, frequency, comments string) error {
-	log.Println(timestamp, call, frequency, comments)
-
-	// make timestamps look how we want
-	t, err := time.Parse("1504", timestamp)
-	if err != nil {
-		log.Printf("%+v", err)
-		MsgError(nil, err)
-		return err
-	}
-
-	// get frequency as a float
-	freq, err := strconv.ParseFloat(frequency, 64)
-	if err != nil {
-		log.Printf("%+v", err)
-		MsgError(nil, err)
-		return err
-	}
-
-	// add spot
-	dxclustermodel.items = append(dxclustermodel.items, &DXClusterSpot{
-		Timestamp: t.Format("15:04"),
-		Call:      strings.ToUpper(call),
-		Band:      config.LookupBand(int(freq)),
-		Frequency: formatFrequency(frequency),
-		Comments:  strings.TrimSpace(comments),
+	// register event handler for any spot changes
+	spot.Attach(func() {
+		dxclustermodel.ResetRows()
 	})
 
-	dxclustermodel.ResetRows()
-
-	// notify user of new spot
-	flashWindow(mainWin.Handle(), 3)
-
-	return nil
+	return m
 }
 
 // RowCount is called by the TableView from SetModel and every time the model publishes a RowsReset event
@@ -90,18 +44,21 @@ func (m *DXClusterModel) Value(row, col int) interface{} {
 
 	switch col {
 	case 0:
-		return item.Timestamp
+		return item.ID
 
 	case 1:
-		return item.Call
+		return item.Timestamp
 
 	case 2:
-		return item.Band
+		return item.Call
 
 	case 3:
-		return item.Frequency
+		return item.Band
 
 	case 4:
+		return item.Frequency
+
+	case 5:
 		return item.Comments
 	}
 
@@ -109,53 +66,57 @@ func (m *DXClusterModel) Value(row, col int) interface{} {
 }
 
 // Sort is called by the TableView to sort the model
+// always sorted by ID so latest spots are on top
 func (m *DXClusterModel) Sort(col int, order walk.SortOrder) error {
-	m.sortColumn, m.sortOrder = col, order
-
 	sort.SliceStable(m.items, func(i, j int) bool {
 		a, b := m.items[i], m.items[j]
 
-		c := func(ls bool) bool {
-			if m.sortOrder == walk.SortAscending {
-				return ls
-			}
-			return !ls
-		}
-
-		switch m.sortColumn {
-		case 0:
-			return c(strings.Compare(a.Timestamp, b.Timestamp) < 0)
-
-		case 1:
-			return c(strings.Compare(a.Call, b.Call) < 0)
-
-		case 2:
-			return c(strings.Compare(a.Band, b.Band) < 0)
-
-		case 3:
-			return c(a.Frequency > b.Frequency)
-
-		case 4:
-			return c(strings.Compare(a.Comments, b.Comments) < 0)
-		}
-		return false
+		return a.ID > b.ID
 	})
 
-	return m.SorterBase.Sort(col, order)
+	return m.SorterBase.Sort(m.sortColumn, m.sortOrder)
 }
 
 // ResetRows loads QSOs from the database
 func (m *DXClusterModel) ResetRows() {
-	// notify TableView about the reset
-	m.PublishRowsReset()
+	var r []spot.Spot
+	var err error
 
-	// maintain same sorting
-	err := m.Sort(m.sortColumn, m.sortOrder)
+	// get new spots
+	r, err = spot.NewSpots(m.lastID)
 	if err != nil {
 		log.Printf("%+v", err)
 		MsgError(nil, err)
 		return
 	}
+
+	// bail early if no updates
+	if len(r) == 0 {
+		return
+	}
+
+	// update models dataset
+	for i := range r {
+		m.items = append(m.items, &r[i])
+
+		// keep track of max ID
+		if m.lastID < r[i].ID {
+			m.lastID = r[i].ID
+		}
+	}
+
+	// notify TableView about the reset
+	m.PublishRowsReset()
+
+	// maintain same sorting
+	err = m.Sort(m.sortColumn, m.sortOrder)
+	if err != nil {
+		log.Printf("%+v", err)
+		MsgError(nil, err)
+		return
+	}
+
+	flashWindow(mainWin, 3)
 }
 
 // dxClusterTableView returns the DX Cluster TableView to be included in the apps MainWindow
@@ -214,6 +175,7 @@ func dxClusterTableView() declarative.TableView {
 			},
 		},
 		Columns: []declarative.TableViewColumn{
+			{Title: "Spot #", Hidden: true},
 			{Title: "Time"},
 			{Title: "Callsign"},
 			{Title: "Band"},

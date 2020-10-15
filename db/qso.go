@@ -3,7 +3,6 @@ package db
 import (
 	"log"
 	"os"
-	"path/filepath"
 
 	"github.com/bbathe/golog/config"
 	"github.com/jmoiron/sqlx"
@@ -25,18 +24,7 @@ func OpenQSODb() error {
 		}
 	}
 
-	// if config not set, make something up
-	if config.QSODatabase.Location == "" {
-		cwd, err := os.Getwd()
-		if err != nil {
-			log.Printf("%+v", err)
-			return err
-		}
-
-		config.QSODatabase.Location = filepath.Join(cwd, "golog.db")
-	}
-
-	// test if db file exists
+	// test if db file exists, if not create it
 	_, err = os.Stat(config.QSODatabase.Location)
 	if err != nil {
 		if os.IsNotExist(err) {

@@ -28,12 +28,12 @@ func NewQSOModel() *QSOModel {
 	m.sortOrder = walk.SortDescending
 	m.ResetRows()
 
-	return m
-}
+	// register event handler for any qso changes
+	qso.Attach(func() {
+		qsomodel.ResetRows()
+	})
 
-// RefreshQSOs is called by various places in the app to reload the QSO TableView
-func RefreshQSOs() {
-	qsomodel.ResetRows()
+	return m
 }
 
 // RowCount is called by the TableView from SetModel and every time the model publishes a RowsReset event

@@ -155,6 +155,29 @@ const (
 	`
 )
 
+var (
+	handlers []QSOChangeEventHandler
+)
+
+// allow callers to register to recieve event after any qso changes occur
+type QSOChangeEventHandler func()
+
+func Attach(handler QSOChangeEventHandler) int {
+	handlers = append(handlers, handler)
+
+	return len(handlers) - 1
+}
+
+func Detach(handle int) {
+	handlers[handle] = nil
+}
+
+func publishQSOChange() {
+	for _, h := range handlers {
+		h()
+	}
+}
+
 // Validate tests the required QSO fields
 func (qso *QSO) Validate(checkID bool) error {
 	missingField := "required field missing %s"
@@ -234,6 +257,7 @@ func (qso *QSO) Add() error {
 		return err
 	}
 
+	publishQSOChange()
 	return nil
 }
 
@@ -288,6 +312,7 @@ func BulkAdd(qsos []QSO) error {
 		return err
 	}
 
+	publishQSOChange()
 	return nil
 }
 
@@ -360,6 +385,7 @@ func (qso *QSO) UpdateOnlyQSO() error {
 		return err
 	}
 
+	publishQSOChange()
 	return nil
 }
 
@@ -389,6 +415,7 @@ func (qso *QSO) Delete() error {
 		return err
 	}
 
+	publishQSOChange()
 	return nil
 }
 
@@ -632,5 +659,6 @@ func UpdateQSLsToSent(qsos []QSO, service QSLService) error {
 		return err
 	}
 
+	publishQSOChange()
 	return nil
 }

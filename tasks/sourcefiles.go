@@ -12,7 +12,6 @@ import (
 	"github.com/bbathe/golog/adif"
 	"github.com/bbathe/golog/config"
 	"github.com/bbathe/golog/models/qso"
-	"github.com/bbathe/golog/ui"
 )
 
 var muxSourceFiles sync.Mutex
@@ -28,7 +27,6 @@ func SourceFiles() {
 	// create a file with changes from all the sourcefiles merged into one
 	err := createMergedChanges(mergedFile)
 	if err != nil {
-		ui.MsgError(nil, err)
 		log.Printf("%+v", err)
 		return
 	}
@@ -36,7 +34,6 @@ func SourceFiles() {
 	// see if there are any qsos to process
 	n, err := getFileSize(mergedFile)
 	if err != nil {
-		ui.MsgError(nil, err)
 		log.Printf("%+v", err)
 		return
 	}
@@ -45,7 +42,6 @@ func SourceFiles() {
 	if n == 0 {
 		err = os.Remove(mergedFile)
 		if err != nil {
-			ui.MsgError(nil, err)
 			log.Printf("%+v", err)
 			return
 		}
@@ -57,7 +53,6 @@ func SourceFiles() {
 	// read in qsos
 	qsos, err := adif.ReadFromFile(mergedFile, qso.NotSent, qso.NotSent, qso.NotSent, qso.NotSent)
 	if err != nil {
-		ui.MsgError(nil, err)
 		log.Printf("%+v", err)
 		return
 	}
@@ -65,12 +60,9 @@ func SourceFiles() {
 	// put in db
 	err = qso.BulkAdd(qsos)
 	if err != nil {
-		ui.MsgError(nil, err)
 		log.Printf("%+v", err)
 		return
 	}
-
-	ui.RefreshQSOs()
 }
 
 // getFileSize returns the size of file fname

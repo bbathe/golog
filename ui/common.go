@@ -5,7 +5,6 @@ import (
 	"log"
 	"os/exec"
 	"strings"
-	"unicode/utf8"
 	"unsafe"
 
 	"github.com/lxn/walk"
@@ -85,51 +84,6 @@ func drawCellStyles(tv *walk.TableView, style *walk.CellStyle, sb walk.SorterBas
 	}
 }
 
-// formatFrequency returns a string with frequency formatted like on my IC-7300
-func formatFrequency(freq string) string {
-	// split on current decimal point
-	parts := strings.Split(freq, ".")
-	s1 := parts[0]
-
-	// pad last part out to 2 digits
-	s2 := parts[1] + strings.Repeat("0", 2-len(parts[1]))
-
-	// figure out if we need to do anything (first part more than 3 digits)
-	startOffset := 0
-	const groupLen = 3
-	groups := (len(s1) - startOffset - 1) / groupLen
-
-	if groups == 0 {
-		// recombine with formatted second part
-		return s1 + "." + s2
-	}
-
-	sep := '.'
-	sepLen := utf8.RuneLen(sep)
-	sepBytes := make([]byte, sepLen)
-	_ = utf8.EncodeRune(sepBytes, sep)
-
-	buf := make([]byte, groups*(groupLen+sepLen)+len(s1)-(groups*groupLen))
-
-	// move over in groups of 3, adding seperator
-	startOffset += groupLen
-	p := len(s1)
-	q := len(buf)
-	for p > startOffset {
-		p -= groupLen
-		q -= groupLen
-		copy(buf[q:q+groupLen], s1[p:])
-		q -= sepLen
-		copy(buf[q:], sepBytes)
-	}
-	if q > 0 {
-		copy(buf[:q], s1)
-	}
-
-	// recombine with formatted second part
-	return string(buf) + "." + s2
-}
-
 // launchQRZPage opens the users default web browser to the qso partners QRZ.com page
 func launchQRZPage(call string) error {
 	u := "https://www.qrz.com"
@@ -182,7 +136,11 @@ func copyToClipboard(txt string) error {
 	return nil
 }
 
-func flashWindow(hWnd win.HWND, times uint32) {
+func flashWindow(parent *walk.MainWindow, times uint32) {
+	if parent == nil {
+		return
+	}
+
 	type flashwinfo struct {
 		CbSize    uint32
 		Hwnd      win.HWND
@@ -193,7 +151,7 @@ func flashWindow(hWnd win.HWND, times uint32) {
 
 	// flash both the window caption and taskbar button
 	fw := flashwinfo{
-		Hwnd:    hWnd,
+		Hwnd:    parent.Handle(),
 		DwFlags: 0x00000003,
 		UCount:  times,
 	}

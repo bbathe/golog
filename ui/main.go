@@ -6,8 +6,11 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/bbathe/golog/config"
+	"github.com/bbathe/golog/db"
+	"github.com/bbathe/golog/tasks"
 	"golang.org/x/sys/windows"
+
+	"github.com/bbathe/golog/config"
 
 	"github.com/bbathe/golog/models/qso"
 	"github.com/lxn/walk"
@@ -29,28 +32,25 @@ var (
 	dxclustermodel *DXClusterModel
 )
 
-// initVariables initializes shared ui variables
-func initVariables() {
+func init() {
+	var err error
+
 	// load app icon
-	ico, err := walk.Resources.Icon("3")
+	appIcon, err = walk.Resources.Icon("3")
 	if err != nil {
-		MsgError(nil, err)
 		log.Fatalf("%+v", err)
 	}
-	appIcon = ico
 
 	// full path to rundll32 for launching web browser
 	runDll32 = filepath.Join(os.Getenv("SYSTEMROOT"), "System32", "rundll32.exe")
 
 	winuserDll, err := windows.LoadDLL("User32.dll")
 	if err != nil {
-		MsgError(nil, err)
 		log.Fatalf("%+v", err)
 	}
 
 	flashWindowEx, err = winuserDll.FindProc("FlashWindowEx")
 	if err != nil {
-		MsgError(nil, err)
 		log.Fatalf("%+v", err)
 	}
 }
@@ -70,8 +70,6 @@ func GoLogWindow() error {
 	var pbQRZ *walk.PushButton
 	var pbCurrentTime *walk.PushButton
 	var pbCurrentDate *walk.PushButton
-
-	initVariables()
 
 	qsomodel = NewQSOModel()
 	bands := []string{""}
@@ -564,7 +562,7 @@ func GoLogWindow() error {
 	}
 
 	// sort to latest cluster posts on top
-	err = dxclustermodel.Sort(0, walk.SortDescending)
+	err = dxclustermodel.Sort(0, walk.SortAscending)
 	if err != nil {
 		MsgError(nil, err)
 		log.Printf("%+v", err)
@@ -635,12 +633,28 @@ func GoLogWindow() error {
 // }
 
 func updateConfig() {
-	err := optionsWindows(mainWin)
+	// stop background tasks
+	tasks.Pause()
+
+	err := OptionsWindow(mainWin)
 	if err != nil {
 		MsgError(mainWin, err)
 		log.Printf("%+v", err)
 		return
 	}
+
+	// reset spot history
+	err = db.NewSpotDb()
+	if err != nil {
+		MsgError(mainWin, err)
+		log.Printf("%+v", err)
+		return
+	}
+
+	// restart background tasks
+	go func() {
+		tasks.Start()
+	}()
 
 	// reload so new changes are in effect
 	qsomodel.ResetRows()

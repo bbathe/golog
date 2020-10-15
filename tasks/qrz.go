@@ -15,7 +15,6 @@ import (
 
 	"github.com/bbathe/golog/config"
 	"github.com/bbathe/golog/models/qso"
-	"github.com/bbathe/golog/ui"
 )
 
 var muxQrzUpload sync.Mutex
@@ -27,7 +26,6 @@ func QSLQrz() {
 
 	qsos, err := qso.FindQSLsToSend(qso.QSLQrz, config.LogbookServices.QSLDelay)
 	if err != nil {
-		ui.MsgError(nil, err)
 		log.Printf("%+v", err)
 		return
 	}
@@ -35,12 +33,9 @@ func QSLQrz() {
 	if len(qsos) > 0 {
 		err = uploadQSOsToQRZ(qsos)
 		if err != nil {
-			ui.MsgError(nil, err)
 			log.Printf("%+v", err)
 			return
 		}
-
-		ui.RefreshQSOs()
 	}
 }
 
@@ -51,7 +46,6 @@ func QSLQrzFinal() {
 
 	qsos, err := qso.FindQSLsToSend(qso.QSLQrz, 0)
 	if err != nil {
-		ui.MsgError(nil, err)
 		log.Printf("%+v", err)
 		return
 	}
@@ -59,12 +53,9 @@ func QSLQrzFinal() {
 	if len(qsos) > 0 {
 		err = uploadQSOsToQRZ(qsos)
 		if err != nil {
-			ui.MsgError(nil, err)
 			log.Printf("%+v", err)
 			return
 		}
-
-		ui.RefreshQSOs()
 	}
 }
 

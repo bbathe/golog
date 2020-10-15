@@ -56,7 +56,35 @@ func main() {
 		// default config file is in the same directory as the executable with the same base name
 		cfn = basefn + ".yaml"
 	}
+
 	err = config.Read(cfn)
+	if err != nil {
+		// if there was an error, let them fix it
+		err = ui.OptionsWindow(nil)
+		if err != nil {
+			ui.MsgError(nil, err)
+			log.Printf("%+v", err)
+		}
+
+		ui.MsgInformation(nil, "restart for any changes to take effect")
+		return
+	}
+
+	// make sure temp directory exists
+	err = os.MkdirAll(config.WorkingDirectory, os.ModePerm)
+	if err != nil {
+		ui.MsgError(nil, err)
+		log.Fatalf("%+v", err)
+	}
+
+	// open our databases
+	err = db.OpenQSODb()
+	if err != nil {
+		ui.MsgError(nil, err)
+		log.Fatalf("%+v", err)
+	}
+
+	err = db.NewSpotDb()
 	if err != nil {
 		ui.MsgError(nil, err)
 		log.Fatalf("%+v", err)
@@ -69,26 +97,12 @@ func main() {
 		log.Fatalf("%+v", err)
 	}
 
-	// make sure temp directory exists
-	err = os.MkdirAll(config.WorkingDirectory, os.ModePerm)
-	if err != nil {
-		ui.MsgError(nil, err)
-		log.Fatalf("%+v", err)
-	}
-
-	// open our database
-	err = db.OpenQSODb()
-	if err != nil {
-		ui.MsgError(nil, err)
-		log.Fatalf("%+v", err)
-	}
-
 	// start background tasks
 	go func() {
 		tasks.Start()
 	}()
 
-	// show app
+	// show app, doesn't come back until main window closed
 	err = ui.GoLogWindow()
 	if err != nil {
 		log.Fatalf("%+v", err)

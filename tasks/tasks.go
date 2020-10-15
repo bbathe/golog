@@ -3,6 +3,9 @@ package tasks
 import (
 	"sync"
 	"time"
+
+	"github.com/bbathe/golog/config"
+	"github.com/bbathe/golog/util"
 )
 
 var (
@@ -19,26 +22,6 @@ func max(a, b int) int {
 	return b
 }
 
-// scheduleRecurring creates a recurring task, returns quit channel
-func scheduleRecurring(what func(), delay time.Duration) chan bool {
-	ticker := time.NewTicker(delay)
-	quit := make(chan bool)
-
-	go func() {
-		for {
-			select {
-			case <-ticker.C:
-				what()
-			case <-quit:
-				ticker.Stop()
-				return
-			}
-		}
-	}()
-
-	return quit
-}
-
 // Start starts all background tasks
 func Start() {
 	mutexQuitChannels.Lock()
@@ -52,17 +35,25 @@ func Start() {
 	// our quit channel
 	quitStartup = make(chan bool)
 
-	// fire off thread to collect spots from HamAlert
-	go func() {
-		GatherHamAlerts()
-	}()
+	// fire off thread to collect spots from HamAlert, if configured
+	if config.ClusterServices.HamAlert.Validate() == nil {
+		StartHamAlerts()
+	}
 
 	// define tasks that run every minute
 	tasksOneMinute := []func(){
 		SourceFiles,
-		QSLClublog,
-		QSLEqsl,
-		QSLQrz,
+	}
+
+	// add services that are configured
+	if config.LogbookServices.ClubLog.Validate() == nil {
+		tasksOneMinute = append(tasksOneMinute, QSLClublog)
+	}
+	if config.LogbookServices.EQSL.Validate() == nil {
+		tasksOneMinute = append(tasksOneMinute, QSLEqsl)
+	}
+	if config.LogbookServices.QRZ.Validate() == nil {
+		tasksOneMinute = append(tasksOneMinute, QSLQrz)
 	}
 
 	// create quit channels
@@ -78,7 +69,7 @@ func Start() {
 		fn := fn
 
 		// create recurring task
-		q := scheduleRecurring(fn, time.Duration(60)*time.Second)
+		q := util.ScheduleRecurring(fn, time.Duration(60)*time.Second)
 
 		// and keep quit channel
 		quitChannels = append(quitChannels, q)
@@ -96,32 +87,50 @@ func Start() {
 	}
 }
 
-// Shutdown stops all background tasks
-func Shutdown() {
+// Pause stops all background tasks, no cleanup
+func Pause() {
 	// stop startup if its still going
 	close(quitStartup)
 
 	mutexQuitChannels.Lock()
 	defer mutexQuitChannels.Unlock()
 
+	// stop collecting HamAlert spots
+	StopHamAlerts()
+
 	// stop tasks
 	for _, q := range quitChannels {
 		close(q)
 	}
 	quitChannels = make([]chan bool, 0)
+}
+
+// Shutdown stops all background tasks, and runs cleanup tasks
+func Shutdown() {
+	Pause()
 
 	//	concurrent shutdown tasks
 	var wg sync.WaitGroup
 
 	// final tasks before shutting down
-	// send all reaming QSOs to QSL
+	// send all remaining QSOs to QSL
 	// & cleanup
 	tasks := []func(){
-		QSLLotwFinal,
-		QSLClublogFinal,
-		QSLEqslFinal,
-		QSLQrzFinal,
 		Cleanup,
+	}
+
+	// add services that are configured
+	if config.LogbookServices.TQSL.Validate() == nil {
+		tasks = append(tasks, QSLLotwFinal)
+	}
+	if config.LogbookServices.ClubLog.Validate() == nil {
+		tasks = append(tasks, QSLClublogFinal)
+	}
+	if config.LogbookServices.EQSL.Validate() == nil {
+		tasks = append(tasks, QSLEqslFinal)
+	}
+	if config.LogbookServices.QRZ.Validate() == nil {
+		tasks = append(tasks, QSLQrzFinal)
 	}
 
 	// spinup all the shutdown tasks

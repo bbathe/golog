@@ -17,7 +17,6 @@ import (
 
 	"github.com/bbathe/golog/config"
 	"github.com/bbathe/golog/models/qso"
-	"github.com/bbathe/golog/ui"
 )
 
 var muxClublogUpload sync.Mutex
@@ -29,7 +28,6 @@ func QSLClublog() {
 
 	qsos, err := qso.FindQSLsToSend(qso.QSLClublog, config.LogbookServices.QSLDelay)
 	if err != nil {
-		ui.MsgError(nil, err)
 		log.Printf("%+v", err)
 		return
 	}
@@ -37,12 +35,9 @@ func QSLClublog() {
 	if len(qsos) > 0 {
 		err = uploadQSOsToClublog(qsos, false)
 		if err != nil {
-			ui.MsgError(nil, err)
 			log.Printf("%+v", err)
 			return
 		}
-
-		ui.RefreshQSOs()
 	}
 }
 
@@ -53,7 +48,6 @@ func QSLClublogFinal() {
 
 	qsos, err := qso.FindQSLsToSend(qso.QSLClublog, 0)
 	if err != nil {
-		ui.MsgError(nil, err)
 		log.Printf("%+v", err)
 		return
 	}
@@ -61,12 +55,9 @@ func QSLClublogFinal() {
 	if len(qsos) > 0 {
 		err = uploadQSOsToClublog(qsos, true)
 		if err != nil {
-			ui.MsgError(nil, err)
 			log.Printf("%+v", err)
 			return
 		}
-
-		ui.RefreshQSOs()
 	}
 }
 
