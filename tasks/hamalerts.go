@@ -3,6 +3,7 @@ package tasks
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"log"
 	"net"
 	"regexp"
@@ -16,6 +17,29 @@ var (
 	conHamAlert  net.Conn
 	quitHamAlert chan bool
 )
+
+// our own type so we can make this "quitable"
+type hamAlertReader struct {
+	r *bufio.Reader
+}
+
+func NewHamAlertReader(rd io.Reader) *hamAlertReader {
+	return &hamAlertReader{r: bufio.NewReader(rd)}
+}
+
+func (r *hamAlertReader) ReadString(delim byte) (*string, error) {
+	msg, err := r.r.ReadString(delim)
+	if err != nil {
+		select {
+		case <-quitHamAlert:
+			return nil, nil
+		default:
+			log.Printf("%+v", err)
+		}
+	}
+
+	return &msg, err
+}
 
 // StartHamAlerts starts the collection of spots from HamAlert
 func StartHamAlerts() {
@@ -45,7 +69,7 @@ func StopHamAlerts() {
 // only returns if we couldn't connect to HamAlert or connection is closed
 func gatherHamAlerts() {
 	var err error
-	var msg string
+	var msg *string
 
 	// connect
 	conHamAlert, err = net.Dial("tcp", config.ClusterServices.HamAlert.HostPort)
@@ -55,27 +79,33 @@ func gatherHamAlerts() {
 	}
 	defer conHamAlert.Close()
 
-	r := bufio.NewReader(conHamAlert)
+	r := NewHamAlertReader(conHamAlert)
 
 	// login
 	msg, err = r.ReadString('\n')
+	if msg == nil {
+		return
+	}
 	if err != nil {
 		log.Printf("%+v", err)
 		return
 	}
-	if !strings.Contains(msg, "HamAlert") {
-		err := fmt.Errorf("doesn't appear to be HamAlert server %s", msg)
+	if !strings.Contains(*msg, "HamAlert") {
+		err := fmt.Errorf("doesn't appear to be HamAlert server %s", *msg)
 		log.Printf("%+v", err)
 		return
 	}
 
 	// hamalert username
 	msg, err = r.ReadString(':')
+	if msg == nil {
+		return
+	}
 	if err != nil {
 		log.Printf("%+v", err)
 		return
 	}
-	if strings.HasSuffix(msg, "login:") {
+	if strings.HasSuffix(*msg, "login:") {
 		fmt.Fprintf(conHamAlert, config.ClusterServices.HamAlert.Username+"\n")
 	} else {
 		log.Printf("%+v", err)
@@ -84,11 +114,14 @@ func gatherHamAlerts() {
 
 	// hamalert password
 	msg, err = r.ReadString(':')
+	if msg == nil {
+		return
+	}
 	if err != nil {
 		log.Printf("%+v", err)
 		return
 	}
-	if strings.HasSuffix(msg, "password:") {
+	if strings.HasSuffix(*msg, "password:") {
 		fmt.Fprintf(conHamAlert, config.ClusterServices.HamAlert.Password+"\n")
 	} else {
 		log.Printf("%+v", err)
@@ -97,12 +130,15 @@ func gatherHamAlerts() {
 
 	// verify greeting
 	msg, err = r.ReadString('>')
+	if msg == nil {
+		return
+	}
 	if err != nil {
 		log.Printf("%+v", err)
 		return
 	}
-	if !strings.Contains(msg, fmt.Sprintf("%s de HamAlert", strings.ToUpper(config.ClusterServices.HamAlert.Username))) {
-		err := fmt.Errorf("authentication failure %s", msg)
+	if !strings.Contains(*msg, fmt.Sprintf("%s de HamAlert", strings.ToUpper(config.ClusterServices.HamAlert.Username))) {
+		err := fmt.Errorf("authentication failure %s", *msg)
 		log.Printf("%+v", err)
 		return
 	}
@@ -121,20 +157,18 @@ func gatherHamAlerts() {
 	re := regexp.MustCompile(`^[^:]+:\s+([^\s]+)\s+([^\s]+)\s+(.*)([0-9]{4})Z`)
 	for {
 		msg, err = r.ReadString('\n')
+		if msg == nil {
+			return
+		}
 		if err != nil {
-			select {
-			case <-quitHamAlert:
-				return
-			default:
-				log.Printf("%+v", err)
-			}
+			log.Printf("%+v", err)
 			return
 		}
 
 		// parse for elements
-		match := re.FindStringSubmatch(msg)
+		match := re.FindStringSubmatch(*msg)
 		if match == nil {
-			err := fmt.Errorf("could not match on message '%s'", msg)
+			err := fmt.Errorf("could not match on message '%s'", *msg)
 			log.Printf("%+v", err)
 			return
 		}
