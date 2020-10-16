@@ -55,6 +55,8 @@ const (
 )
 
 var (
+	errNoConnection = fmt.Errorf("no database connection")
+
 	handlers []SpotChangeEventHandler
 )
 
@@ -79,6 +81,14 @@ func publishSpotChange() {
 
 // Add inserts a single spot into the spot database
 func Add(timestamp, call, frequency, comments string) error {
+	var err error
+
+	if db.SpotDb == nil {
+		err = errNoConnection
+		log.Printf("%+v", err)
+		return err
+	}
+
 	// make timestamps look how we want
 	t, err := time.Parse("1504", timestamp)
 	if err != nil {
@@ -102,12 +112,6 @@ func Add(timestamp, call, frequency, comments string) error {
 		Comments:  strings.TrimSpace(comments),
 	}
 
-	if db.SpotDb == nil {
-		err := fmt.Errorf("no database connection")
-		log.Printf("%+v", err)
-		return err
-	}
-
 	spotInsert, err := db.SpotDb.PrepareNamed(stmtSpotInsert)
 	if err != nil {
 		log.Printf("%+v", err)
@@ -126,8 +130,10 @@ func Add(timestamp, call, frequency, comments string) error {
 
 // NewSpots returns all Spots with ID after lastID
 func NewSpots(lastID int64) ([]Spot, error) {
+	var err error
+
 	if db.SpotDb == nil {
-		err := fmt.Errorf("no database connection")
+		err = errNoConnection
 		log.Printf("%+v", err)
 		return []Spot{}, err
 	}

@@ -1,6 +1,7 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -61,24 +62,22 @@ type clublog struct {
 }
 
 // Validate tests the required clublog fields
-// doesn't log errors to cut down on log noise
+// doesn't log errors because you don't have to use clublog
 func (c *clublog) Validate() error {
-	missingField := "required configuration missing %s"
-
 	if c.Email == "" {
-		err := fmt.Errorf(missingField, "Username")
+		err := fmt.Errorf(msgMissingField, "Club Log Username")
 		return err
 	}
 	if c.Password == "" {
-		err := fmt.Errorf(missingField, "Password")
+		err := fmt.Errorf(msgMissingField, "Club Log Password")
 		return err
 	}
 	if c.Callsign == "" {
-		err := fmt.Errorf(missingField, "Callsign")
+		err := fmt.Errorf(msgMissingField, "Club Log Callsign")
 		return err
 	}
 	if c.APIKey == "" {
-		err := fmt.Errorf(missingField, "APIKey")
+		err := fmt.Errorf(msgMissingField, "Club Log APIKey")
 		return err
 	}
 
@@ -91,16 +90,14 @@ type eqsl struct {
 }
 
 // Validate tests the required eqsl fields
-// doesn't log errors to cut down on log noise
+// doesn't log errors because you don't have to use eqsl
 func (e *eqsl) Validate() error {
-	missingField := "required configuration missing %s"
-
 	if e.Username == "" {
-		err := fmt.Errorf(missingField, "Username")
+		err := fmt.Errorf(msgMissingField, "eQSL Username")
 		return err
 	}
 	if e.Password == "" {
-		err := fmt.Errorf(missingField, "Password")
+		err := fmt.Errorf(msgMissingField, "eQSL Password")
 		return err
 	}
 
@@ -112,12 +109,10 @@ type qrz struct {
 }
 
 // Validate tests the required qrz fields
-// doesn't log errors to cut down on log noise
+// doesn't log errors because you don't have to use qrz
 func (q *qrz) Validate() error {
-	missingField := "required configuration missing %s"
-
 	if q.APIKey == "" {
-		err := fmt.Errorf(missingField, "APIKey")
+		err := fmt.Errorf(msgMissingField, "QRZ API Key")
 		return err
 	}
 
@@ -130,16 +125,14 @@ type tqsl struct {
 }
 
 // Validate tests the required tqsl fields
-// doesn't log errors to cut down on log noise
+// doesn't log errors because you don't have to use lotw
 func (t *tqsl) Validate() error {
-	missingField := "required configuration missing %s"
-
 	if t.ExeLocation == "" {
-		err := fmt.Errorf(missingField, "ExeLocation")
+		err := fmt.Errorf(msgMissingField, "LoTW TQSL Executable")
 		return err
 	}
 	if t.StationLocationName == "" {
-		err := fmt.Errorf(missingField, "StationLocationName")
+		err := fmt.Errorf(msgMissingField, "LoTW Station Location Name")
 		return err
 	}
 
@@ -161,20 +154,18 @@ type hamalert struct {
 }
 
 // Validate tests the required hamalert fields
-// doesn't log errors to cut down on log noise
+// doesn't log errors because you don't have to use hamalert
 func (h *hamalert) Validate() error {
-	missingField := "required configuration missing %s"
-
 	if h.HostPort == "" {
-		err := fmt.Errorf(missingField, "HostPort")
+		err := fmt.Errorf(msgMissingField, "HamAlert Host:Port")
 		return err
 	}
 	if h.Username == "" {
-		err := fmt.Errorf(missingField, "Username")
+		err := fmt.Errorf(msgMissingField, "HamAlert Username")
 		return err
 	}
 	if h.Password == "" {
-		err := fmt.Errorf(missingField, "Password")
+		err := fmt.Errorf(msgMissingField, "HamAlert Password")
 		return err
 	}
 
@@ -214,30 +205,28 @@ func (c *Configuration) RemoveSourceFile(idx int) {
 
 // Validate tests the required Configuration fields
 func (c *Configuration) Validate() error {
-	missingField := "required configuration missing %s"
-
 	if c.Station.Callsign == "" {
-		err := fmt.Errorf(missingField, "Station Callsign")
+		err := fmt.Errorf(msgMissingField, "Station Callsign")
 		log.Printf("%+v", err)
 		return err
 	}
 	if c.QSODatabase.Location == "" {
-		err := fmt.Errorf(missingField, "Database")
+		err := fmt.Errorf(msgMissingField, "Database")
 		log.Printf("%+v", err)
 		return err
 	}
 	if c.QSOTableview.History == 0 {
-		err := fmt.Errorf(missingField, "QSO Tableview History")
+		err := fmt.Errorf(msgMissingField, "QSO Tableview History")
 		log.Printf("%+v", err)
 		return err
 	}
 	if c.QSOTableview.Limit == 0 {
-		err := fmt.Errorf(missingField, "QSO Tableview Limit")
+		err := fmt.Errorf(msgMissingField, "QSO Tableview Limit")
 		log.Printf("%+v", err)
 		return err
 	}
 	if c.WorkingDirectory == "" {
-		err := fmt.Errorf(missingField, "Working Directory")
+		err := fmt.Errorf(msgMissingField, "Working Directory")
 		log.Printf("%+v", err)
 		return err
 	}
@@ -246,8 +235,11 @@ func (c *Configuration) Validate() error {
 }
 
 var (
-	configFile string
+	configFile      string
+	errNoConfig     = errors.New("no current configuration file")
+	msgMissingField = "required configuration missing %s"
 
+	// unwrapped config values
 	Station          station
 	QSODatabase      qsodatabase
 	QSOTableview     qsotableview
@@ -258,7 +250,7 @@ var (
 	WorkingDirectory string
 )
 
-// Read reads application configuration from file fname
+// Read loads application configuration from file fname
 func Read(fname string) error {
 	// save for write later
 	configFile = fname
@@ -277,7 +269,7 @@ func Read(fname string) error {
 		return err
 	}
 
-	// make sure valid before proceeding
+	// make sure valid before unwrapping
 	err = c.Validate()
 	if err != nil {
 		log.Printf("%+v", err)
@@ -298,6 +290,11 @@ func Read(fname string) error {
 
 // Write writes application configuration to the same file it was read from
 func Write() error {
+	if configFile == "" {
+		return errNoConfig
+	}
+
+	// wrap
 	c := Configuration{
 		Station:          Station,
 		QSODatabase:      QSODatabase,
@@ -336,8 +333,7 @@ func Write() error {
 // Copy provides the caller a copy of the current configuration
 func Copy(c *Configuration) error {
 	if configFile == "" {
-		// no current config
-		return nil
+		return errNoConfig
 	}
 
 	// test if active configuration is valid for writing
@@ -357,7 +353,7 @@ func Copy(c *Configuration) error {
 		return err
 	}
 
-	// make sure file is current config
+	// make sure config file content matches current config
 	err = Write()
 	if err != nil {
 		log.Printf("%+v", err)
@@ -384,6 +380,10 @@ func Copy(c *Configuration) error {
 
 // Reload current configuration from caller provided configuration
 func Reload(c Configuration) error {
+	if configFile == "" {
+		return errNoConfig
+	}
+
 	// make sure valid before proceeding
 	err := c.Validate()
 	if err != nil {

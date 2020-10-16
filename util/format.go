@@ -5,7 +5,7 @@ import (
 	"unicode/utf8"
 )
 
-// FormatFrequency returns a string with frequency formatted like on my IC-7300
+// FormatFrequency returns a string with frequency formatted like 999.999.99
 func FormatFrequency(freq string) string {
 	// split on current decimal point
 	parts := strings.Split(freq, ".")

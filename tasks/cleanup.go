@@ -17,10 +17,11 @@ func Cleanup() {
 	defer muxCleanup.Unlock()
 
 	if config.WorkingDirectory == "" {
+		// done
 		return
 	}
 
-	// cleanup archive directory
+	// cleanup working directory
 	f, err := os.Open(config.WorkingDirectory)
 	if err != nil {
 		log.Printf("%+v", err)

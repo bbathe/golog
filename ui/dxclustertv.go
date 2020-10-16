@@ -9,6 +9,10 @@ import (
 	"github.com/lxn/walk/declarative"
 )
 
+var (
+	dxclustermodel *DXClusterModel
+)
+
 // DXClusterModel is used to display cluster spots in the main windows TableView
 type DXClusterModel struct {
 	walk.TableModelBase

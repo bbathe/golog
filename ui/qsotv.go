@@ -204,11 +204,15 @@ func (m *QSOModel) Search(date, time, call, band, mode, rstrcvd, rstsent string)
 		RSTRcvd: rstrcvd,
 		RSTSent: rstsent,
 	}
+
+	m.ResetRows()
 }
 
 // ClearSearch clears the selection criteria in the model
 func (m *QSOModel) ClearSearch() {
 	m.searchCriteria = nil
+
+	m.ResetRows()
 }
 
 // qsoTableView returns the QSO TableView to be included in the apps MainWindow

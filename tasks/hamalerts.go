@@ -17,6 +17,7 @@ var (
 	quitHamAlert chan bool
 )
 
+// StartHamAlerts starts the collection of spots from HamAlert
 func StartHamAlerts() {
 	quitHamAlert = make(chan bool)
 
@@ -27,19 +28,22 @@ func StartHamAlerts() {
 			case <-quitHamAlert:
 				return
 			default:
-				GatherHamAlerts()
+				gatherHamAlerts()
 			}
 		}
 	}()
 }
 
+// StopHamAlerts shutdowns the collection of spots from HamAlert
 func StopHamAlerts() {
 	close(quitHamAlert)
 
 	conHamAlert.Close()
 }
 
-func GatherHamAlerts() {
+// gatherHamAlerts does the real work of inetgrating with HamAlert to collect spot
+// only returns if we couldn't connect to HamAlert or connection is closed
+func gatherHamAlerts() {
 	var err error
 	var msg string
 
@@ -113,6 +117,7 @@ func GatherHamAlerts() {
 	// prime with a little history
 	fmt.Fprintf(conHamAlert, "show/dx 5\n")
 
+	// wait for new lines to show up and add spot entries for them
 	re := regexp.MustCompile(`^[^:]+:\s+([^\s]+)\s+([^\s]+)\s+(.*)([0-9]{4})Z`)
 	for {
 		msg, err = r.ReadString('\n')

@@ -2,6 +2,7 @@ package config
 
 import (
 	"encoding/xml"
+	"errors"
 	"io/ioutil"
 	"log"
 	"strconv"
@@ -58,7 +59,8 @@ type Lookups struct {
 }
 
 var (
-	lookupFile string
+	lookupFile  string
+	errNoLookup = errors.New("no current lookup file")
 
 	Bands []Band
 	Modes []Mode
@@ -131,13 +133,13 @@ func ListModeNames() []string {
 	return modes
 }
 
-// UpdateLookupsFromTQSL returns the lookuips in the TQSL config.xml file
-func ReadLookupsFromTQSL(tqslconfigxml string) ([]Band, []Mode, error) {
+// ReadLookupsFromTQSL returns the lookups from the TQSL config.xml file
+func ReadLookupsFromTQSL(tqslconfigxml string) (Lookups, error) {
 	// #nosec G304
 	bs, err := ioutil.ReadFile(tqslconfigxml)
 	if err != nil {
 		log.Printf("%+v", err)
-		return nil, nil, err
+		return Lookups{}, err
 	}
 
 	// parse xml
@@ -145,7 +147,7 @@ func ReadLookupsFromTQSL(tqslconfigxml string) ([]Band, []Mode, error) {
 	err = xml.Unmarshal(bs, &tqslconf)
 	if err != nil {
 		log.Printf("%+v", err)
-		return nil, nil, err
+		return Lookups{}, err
 	}
 
 	// transform to our lookups
@@ -154,13 +156,13 @@ func ReadLookupsFromTQSL(tqslconfigxml string) ([]Band, []Mode, error) {
 		low, err := strconv.Atoi(b.Low)
 		if err != nil {
 			log.Printf("%+v", err)
-			return nil, nil, err
+			return Lookups{}, err
 		}
 
 		high, err := strconv.Atoi(b.High)
 		if err != nil {
 			log.Printf("%+v", err)
-			return nil, nil, err
+			return Lookups{}, err
 		}
 
 		bands = append(bands, Band{
@@ -180,7 +182,13 @@ func ReadLookupsFromTQSL(tqslconfigxml string) ([]Band, []Mode, error) {
 		})
 	}
 
-	return bands, modes, nil
+	// wrap
+	l := Lookups{
+		Bands: bands,
+		Modes: modes,
+	}
+
+	return l, nil
 }
 
 // ReadLookupsFromFile reads lookups from file fname
@@ -210,6 +218,11 @@ func ReadLookupsFromFile(fname string) error {
 
 // WriteLookupsToFile writes lookups to file fname
 func WriteLookupsToFile() error {
+	if lookupFile == "" {
+		return errNoLookup
+	}
+
+	// wrap
 	l := Lookups{
 		Bands: Bands,
 		Modes: Modes,
@@ -234,6 +247,10 @@ func WriteLookupsToFile() error {
 
 // ReloadLookups current lookups from caller provided lookups
 func ReloadLookups(l Lookups) error {
+	if lookupFile == "" {
+		return errNoLookup
+	}
+
 	// create YAML to write from callers lookups
 	b, err := yaml.Marshal(l)
 	if err != nil {

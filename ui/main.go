@@ -28,7 +28,6 @@ var (
 	qsomodel       *QSOModel
 	selectedQSO    = &qso.QSO{}
 	bndSelectedQSO *walk.DataBinder
-	dxclustermodel *DXClusterModel
 )
 
 func init() {
@@ -559,8 +558,6 @@ func GoLogWindow() error {
 								leRSTRcvd.Text(),
 								leRSTSent.Text(),
 							)
-
-							qsomodel.ResetRows()
 						},
 					},
 					declarative.PushButton{
@@ -576,7 +573,6 @@ func GoLogWindow() error {
 							*selectedQSO = qso.QSO{
 								StationCallsign: config.Station.Callsign,
 							}
-							qsomodel.ClearSearch()
 
 							// refresh
 							err := bndSelectedQSO.Reset()
@@ -586,7 +582,7 @@ func GoLogWindow() error {
 								return
 							}
 
-							qsomodel.ResetRows()
+							qsomodel.ClearSearch()
 						},
 					},
 				},

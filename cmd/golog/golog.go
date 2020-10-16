@@ -66,7 +66,7 @@ func main() {
 			log.Printf("%+v", err)
 		}
 
-		ui.MsgInformation(nil, "restart for any changes to take effect")
+		ui.MsgInformation(nil, "restart for changes to take effect")
 		return
 	}
 

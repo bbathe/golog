@@ -1074,15 +1074,15 @@ func tabConfigLookups() declarative.TabPage {
 										}
 									}
 
-									bands, modes, err := config.ReadLookupsFromTQSL(*fname)
+									l, err := config.ReadLookupsFromTQSL(*fname)
 									if err != nil {
 										MsgError(configForm, err)
 										log.Printf("%+v", err)
 										return
 									}
 
-									modelBands.Merge(bands)
-									modelModes.Merge(modes)
+									modelBands.Merge(l.Bands)
+									modelModes.Merge(l.Modes)
 								},
 							},
 						},
@@ -1091,7 +1091,7 @@ func tabConfigLookups() declarative.TabPage {
 			},
 			declarative.HSpacer{},
 			declarative.Label{
-				Text:          "Check the bands/modes you want available when logging a QSO",
+				Text:          "Check the bands/modes you want available when logging & editing a QSO",
 				TextAlignment: declarative.AlignCenter,
 			},
 			declarative.Composite{

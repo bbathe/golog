@@ -156,6 +156,8 @@ const (
 )
 
 var (
+	errNoConnection = fmt.Errorf("no database connection")
+
 	handlers []QSOChangeEventHandler
 )
 
@@ -230,8 +232,10 @@ func (qso *QSO) Validate(checkID bool) error {
 // sets qso.LoadedAt before insert
 // does not insert QSL fields, they default to false
 func (qso *QSO) Add() error {
+	var err error
+
 	if db.QSODb == nil {
-		err := fmt.Errorf("no database connection")
+		err = errNoConnection
 		log.Printf("%+v", err)
 		return err
 	}
@@ -239,7 +243,7 @@ func (qso *QSO) Add() error {
 	// set LoadedAt to now
 	qso.LoadedAt = time.Now().Unix()
 
-	err := qso.Validate(false)
+	err = qso.Validate(false)
 	if err != nil {
 		log.Printf("%+v", err)
 		return err
@@ -267,7 +271,7 @@ func BulkAdd(qsos []QSO) error {
 	var err error
 
 	if db.QSODb == nil {
-		err = fmt.Errorf("no database connection")
+		err = errNoConnection
 		log.Printf("%+v", err)
 		return err
 	}
@@ -322,7 +326,7 @@ func (qso *QSO) UpdateOnlyQSO() error {
 	var err error
 
 	if db.QSODb == nil {
-		err := fmt.Errorf("no database connection")
+		err = errNoConnection
 		log.Printf("%+v", err)
 		return err
 	}
@@ -391,13 +395,15 @@ func (qso *QSO) UpdateOnlyQSO() error {
 
 // Delete removes a qso from the qso database
 func (qso *QSO) Delete() error {
+	var err error
+
 	if db.QSODb == nil {
-		err := fmt.Errorf("no database connection")
+		err = errNoConnection
 		log.Printf("%+v", err)
 		return err
 	}
 
-	err := qso.Validate(true)
+	err = qso.Validate(true)
 	if err != nil {
 		log.Printf("%+v", err)
 		return err
@@ -421,14 +427,16 @@ func (qso *QSO) Delete() error {
 
 // All returns all QSOs in the qso database
 func All() ([]QSO, error) {
+	var err error
+
 	if db.QSODb == nil {
-		err := fmt.Errorf("no database connection")
+		err = errNoConnection
 		log.Printf("%+v", err)
 		return []QSO{}, err
 	}
 
 	var qsos []QSO
-	err := db.QSODb.Select(&qsos, stmtQSOSelectAll)
+	err = db.QSODb.Select(&qsos, stmtQSOSelectAll)
 	if err != nil {
 		log.Printf("%+v", err)
 		return []QSO{}, err
@@ -439,8 +447,10 @@ func All() ([]QSO, error) {
 
 // Get returns a single QSO identified by ID
 func Get(ID int64) (*QSO, error) {
+	var err error
+
 	if db.QSODb == nil {
-		err := fmt.Errorf("no database connection")
+		err = errNoConnection
 		log.Printf("%+v", err)
 		return nil, err
 	}
@@ -471,8 +481,10 @@ func Get(ID int64) (*QSO, error) {
 
 // Search returns all QSOs matching the criteria limited by count limit
 func Search(criteria QSO, limit int) ([]QSO, error) {
+	var err error
+
 	if db.QSODb == nil {
-		err := fmt.Errorf("no database connection")
+		err = errNoConnection
 		log.Printf("%+v", err)
 		return []QSO{}, err
 	}
@@ -530,8 +542,10 @@ func Search(criteria QSO, limit int) ([]QSO, error) {
 
 // History returns all QSO loaded after days ago limited by count limit
 func History(days, limit int) ([]QSO, error) {
+	var err error
+
 	if db.QSODb == nil {
-		err := fmt.Errorf("no database connection")
+		err = errNoConnection
 		log.Printf("%+v", err)
 		return []QSO{}, err
 	}
@@ -577,8 +591,10 @@ func History(days, limit int) ([]QSO, error) {
 
 // FindQSLsToSend returns all QSOs that need QSLs for a specific service before delay minutes ago
 func FindQSLsToSend(service QSLService, delay int) ([]QSO, error) {
+	var err error
+
 	if db.QSODb == nil {
-		err := fmt.Errorf("no database connection")
+		err = errNoConnection
 		log.Printf("%+v", err)
 		return []QSO{}, err
 	}
@@ -622,7 +638,7 @@ func UpdateQSLsToSent(qsos []QSO, service QSLService) error {
 	var err error
 
 	if db.QSODb == nil {
-		err := fmt.Errorf("no database connection")
+		err = errNoConnection
 		log.Printf("%+v", err)
 		return err
 	}

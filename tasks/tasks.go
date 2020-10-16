@@ -113,8 +113,7 @@ func Shutdown() {
 	var wg sync.WaitGroup
 
 	// final tasks before shutting down
-	// send all remaining QSOs to QSL
-	// & cleanup
+	// cleanup & send all remaining QSOs to logbook services
 	tasks := []func(){
 		Cleanup,
 	}

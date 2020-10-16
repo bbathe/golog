@@ -10,12 +10,10 @@ import (
 	"github.com/lxn/walk/declarative"
 )
 
-var (
-	adifDlg *walk.Dialog
-)
-
 // importADIF drives the user thru importing QSOs from an ADIF file
 func importADIF(parent walk.Form) error {
+	var adifDlg *walk.Dialog
+
 	var leADIFFile *walk.LineEdit
 
 	var cbClublog *walk.CheckBox
