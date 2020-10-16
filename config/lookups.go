@@ -39,27 +39,29 @@ type tqslconfig struct {
 	Bandmap adifbandmap `xml:"bands"`
 }
 
-type band struct {
+type Band struct {
 	Band     string
 	FreqLow  int
 	FreqHigh int
 	Visible  bool
 }
 
-type mode struct {
+type Mode struct {
 	Mode    string
 	Submode string
 	Visible bool
 }
 
-type lookups struct {
-	Bands []band
-	Modes []mode
+type Lookups struct {
+	Bands []Band
+	Modes []Mode
 }
 
 var (
-	Bands []band
-	Modes []mode
+	lookupFile string
+
+	Bands []Band
+	Modes []Mode
 )
 
 // LookupModeSubmode returns the mode & submode based on the mode name mode
@@ -118,24 +120,24 @@ func ListBandNames() []string {
 func ListModeNames() []string {
 	modes := make([]string, 0, len(Modes))
 	for _, m := range Modes {
-		n := m.Mode
-		if m.Submode != "" {
-			if m.Visible {
+		if m.Visible {
+			n := m.Mode
+			if m.Submode != "" {
 				n = m.Submode
 			}
+			modes = append(modes, n)
 		}
-		modes = append(modes, n)
 	}
 	return modes
 }
 
-// UpdateLookupsFromTQSL regenerates the lookuips based on the TQSL config.xml file
-func UpdateLookupsFromTQSL(tqslconfigxml string) error {
+// UpdateLookupsFromTQSL returns the lookuips in the TQSL config.xml file
+func ReadLookupsFromTQSL(tqslconfigxml string) ([]Band, []Mode, error) {
 	// #nosec G304
 	bs, err := ioutil.ReadFile(tqslconfigxml)
 	if err != nil {
 		log.Printf("%+v", err)
-		return err
+		return nil, nil, err
 	}
 
 	// parse xml
@@ -143,25 +145,25 @@ func UpdateLookupsFromTQSL(tqslconfigxml string) error {
 	err = xml.Unmarshal(bs, &tqslconf)
 	if err != nil {
 		log.Printf("%+v", err)
-		return err
+		return nil, nil, err
 	}
 
 	// transform to our lookups
-	bands := make([]band, 0, len(tqslconf.Bandmap.Bands))
+	bands := make([]Band, 0, len(tqslconf.Bandmap.Bands))
 	for _, b := range tqslconf.Bandmap.Bands {
 		low, err := strconv.Atoi(b.Low)
 		if err != nil {
 			log.Printf("%+v", err)
-			return err
+			return nil, nil, err
 		}
 
 		high, err := strconv.Atoi(b.High)
 		if err != nil {
 			log.Printf("%+v", err)
-			return err
+			return nil, nil, err
 		}
 
-		bands = append(bands, band{
+		bands = append(bands, Band{
 			Band:     strings.ToLower(b.AdifBand),
 			FreqLow:  low,
 			FreqHigh: high,
@@ -169,31 +171,30 @@ func UpdateLookupsFromTQSL(tqslconfigxml string) error {
 		})
 	}
 
-	modes := make([]mode, 0, len(tqslconf.Adifmap.Adifmodes))
+	modes := make([]Mode, 0, len(tqslconf.Adifmap.Adifmodes))
 	for _, m := range tqslconf.Adifmap.Adifmodes {
-		modes = append(modes, mode{
+		modes = append(modes, Mode{
 			Mode:    strings.ToUpper(m.AdifMode),
 			Submode: strings.ToUpper(m.AdifSubmode),
 			Visible: true,
 		})
 	}
 
-	Bands = bands
-	Modes = modes
-
-	return nil
+	return bands, modes, nil
 }
 
 // ReadLookupsFromFile reads lookups from file fname
 func ReadLookupsFromFile(fname string) error {
+	lookupFile = fname
+
 	// #nosec G304
-	bs, err := ioutil.ReadFile(fname)
+	bs, err := ioutil.ReadFile(lookupFile)
 	if err != nil {
 		log.Printf("%+v", err)
 		return err
 	}
 
-	var l lookups
+	var l Lookups
 	err = yaml.Unmarshal(bs, &l)
 	if err != nil {
 		log.Printf("%+v", err)
@@ -208,8 +209,8 @@ func ReadLookupsFromFile(fname string) error {
 }
 
 // WriteLookupsToFile writes lookups to file fname
-func WriteLookupsToFile(fname string) error {
-	l := lookups{
+func WriteLookupsToFile() error {
+	l := Lookups{
 		Bands: Bands,
 		Modes: Modes,
 	}
@@ -222,7 +223,33 @@ func WriteLookupsToFile(fname string) error {
 	}
 
 	// write out to file
-	err = ioutil.WriteFile(fname, b, 0600)
+	err = ioutil.WriteFile(lookupFile, b, 0600)
+	if err != nil {
+		log.Printf("%+v", err)
+		return err
+	}
+
+	return nil
+}
+
+// ReloadLookups current lookups from caller provided lookups
+func ReloadLookups(l Lookups) error {
+	// create YAML to write from callers lookups
+	b, err := yaml.Marshal(l)
+	if err != nil {
+		log.Printf("%+v", err)
+		return err
+	}
+
+	// write out to file
+	err = ioutil.WriteFile(lookupFile, b, 0600)
+	if err != nil {
+		log.Printf("%+v", err)
+		return err
+	}
+
+	// reread from file
+	err = ReadLookupsFromFile(lookupFile)
 	if err != nil {
 		log.Printf("%+v", err)
 		return err

@@ -2,6 +2,9 @@ package ui
 
 import (
 	"log"
+	"path/filepath"
+	"sort"
+	"strings"
 
 	"github.com/bbathe/golog/config"
 	"github.com/bbathe/golog/db"
@@ -13,8 +16,32 @@ import (
 var (
 	newConfig config.Configuration
 
+	modelBands *BandLookupModel
+	modelModes *ModeLookupModel
+
 	configForm walk.Form
 )
+
+func persistConfigChanges() error {
+	// persist config
+	err := config.Reload(newConfig)
+	if err != nil {
+		log.Printf("%+v", err)
+		return err
+	}
+
+	// persist lookups
+	err = config.ReloadLookups(config.Lookups{
+		Bands: modelBands.GetBands(),
+		Modes: modelModes.GetModes(),
+	})
+	if err != nil {
+		log.Printf("%+v", err)
+		return err
+	}
+
+	return nil
+}
 
 func OptionsWindow(parent *walk.MainWindow) error {
 	// make working copy of current config
@@ -55,10 +82,9 @@ func OptionsWindow(parent *walk.MainWindow) error {
 						declarative.PushButton{
 							Text: "OK",
 							OnClicked: func() {
-								// persist config
-								err := config.Reload(newConfig)
+								err := persistConfigChanges()
 								if err != nil {
-									MsgError(nil, err)
+									MsgError(configForm, err)
 									log.Printf("%+v", err)
 									return
 								}
@@ -112,6 +138,7 @@ func OptionsWindow(parent *walk.MainWindow) error {
 						tabConfigSourceFiles(),
 						tabConfigLogbookServices(),
 						tabConfigDXClusters(),
+						tabConfigLookups(),
 					},
 				},
 				declarative.Composite{
@@ -121,10 +148,9 @@ func OptionsWindow(parent *walk.MainWindow) error {
 						declarative.PushButton{
 							Text: "OK",
 							OnClicked: func() {
-								// persist config
-								err := config.Reload(newConfig)
+								err := persistConfigChanges()
 								if err != nil {
-									MsgError(configDlg, err)
+									MsgError(configForm, err)
 									log.Printf("%+v", err)
 									return
 								}
@@ -132,7 +158,7 @@ func OptionsWindow(parent *walk.MainWindow) error {
 								// reopen database
 								err = db.OpenQSODb()
 								if err != nil {
-									MsgError(configDlg, err)
+									MsgError(configForm, err)
 									log.Printf("%+v", err)
 									return
 								}
@@ -804,6 +830,314 @@ func tabConfigDXClusters() declarative.TabPage {
 							},
 						},
 					},
+				},
+			},
+			declarative.HSpacer{},
+		},
+	}
+}
+
+type BandLookupModel struct {
+	walk.ReflectTableModelBase
+	walk.ItemChecker
+	walk.SorterBase
+	bands []config.Band
+}
+
+func NewBandLookupModel() *BandLookupModel {
+	m := new(BandLookupModel)
+
+	// make copy
+	m.bands = make([]config.Band, len(config.Bands))
+	for i := range config.Bands {
+		m.bands[i] = config.Band{
+			Band:     config.Bands[i].Band,
+			FreqLow:  config.Bands[i].FreqLow,
+			FreqHigh: config.Bands[i].FreqHigh,
+			Visible:  config.Bands[i].Visible,
+		}
+	}
+
+	return m
+}
+
+func (m *BandLookupModel) GetBands() []config.Band {
+	return m.bands
+}
+
+func (m *BandLookupModel) Merge(bands []config.Band) {
+	// driven by new bands
+	var i int
+	for i = 0; i < len(bands); i++ {
+		// search thru old bands
+		var j int
+		for j = 0; j < len(m.bands); j++ {
+			// match on band name
+			if m.bands[j].Band == bands[i].Band {
+				// update details, leave Visible alone
+				m.bands[j].FreqLow = bands[i].FreqLow
+				m.bands[j].FreqHigh = bands[i].FreqHigh
+				break
+			}
+		}
+
+		// if we didn't have this in the old bands, add it
+		if j >= len(m.bands) {
+			m.bands = append(m.bands, config.Band{
+				Band:     bands[i].Band,
+				FreqLow:  bands[i].FreqLow,
+				FreqHigh: bands[i].FreqHigh,
+				Visible:  bands[i].Visible,
+			})
+		}
+	}
+
+	// notify TableView about the reset
+	m.PublishRowsReset()
+}
+
+func (m *BandLookupModel) RowCount() int {
+	return len(m.bands)
+}
+
+func (m *BandLookupModel) Value(row, col int) interface{} {
+	return m.bands[row].Band
+}
+
+func (m *BandLookupModel) Sort(col int, order walk.SortOrder) error {
+	sort.SliceStable(m.bands, func(i, j int) bool {
+		a, b := m.bands[i], m.bands[j]
+
+		return strings.Compare(a.Band, b.Band) < 0
+	})
+
+	return m.SorterBase.Sort(99, walk.SortDescending)
+}
+
+func (m *BandLookupModel) Checked(index int) bool {
+	return m.bands[index].Visible
+}
+
+func (m *BandLookupModel) SetChecked(index int, checked bool) error {
+	m.bands[index].Visible = checked
+	return nil
+}
+
+type ModeLookupModel struct {
+	walk.ReflectTableModelBase
+	walk.ItemChecker
+	walk.SorterBase
+	modes []config.Mode
+}
+
+func NewModeLookupModel() *ModeLookupModel {
+	m := new(ModeLookupModel)
+
+	// make copy
+	m.modes = make([]config.Mode, len(config.Modes))
+	for i := range config.Modes {
+		m.modes[i] = config.Mode{
+			Mode:    config.Modes[i].Mode,
+			Submode: config.Modes[i].Submode,
+			Visible: config.Modes[i].Visible,
+		}
+	}
+
+	return m
+}
+
+func (m *ModeLookupModel) GetModes() []config.Mode {
+	return m.modes
+}
+
+func (m *ModeLookupModel) Merge(modes []config.Mode) {
+	// driven by new modes
+	var i int
+	for i = 0; i < len(modes); i++ {
+		// search thru old modes
+		var j int
+		for j = 0; j < len(m.modes); j++ {
+			// match on mode & submode names
+			if m.modes[j].Mode == modes[i].Mode && m.modes[j].Submode == modes[i].Submode {
+				// no more details, but we have a match
+				break
+			}
+		}
+
+		// if we didn't have this in the old modes
+		if j >= len(m.modes) {
+			// then add it
+			m.modes = append(m.modes, config.Mode{
+				Mode:    modes[i].Mode,
+				Submode: modes[i].Submode,
+				Visible: modes[i].Visible,
+			})
+		}
+	}
+
+	// notify TableView about the reset
+	m.PublishRowsReset()
+}
+
+func (m *ModeLookupModel) RowCount() int {
+	return len(m.modes)
+}
+
+func (m *ModeLookupModel) Value(row, col int) interface{} {
+	item := m.modes[row]
+
+	n := item.Mode
+	if item.Submode != "" {
+		n = item.Submode
+	}
+
+	return n
+}
+
+func (m *ModeLookupModel) Sort(col int, order walk.SortOrder) error {
+	sort.SliceStable(m.modes, func(i, j int) bool {
+		a, b := m.modes[i], m.modes[j]
+
+		na := a.Mode
+		if a.Submode != "" {
+			na = a.Submode
+		}
+
+		nb := b.Mode
+		if b.Submode != "" {
+			nb = b.Submode
+		}
+
+		return strings.Compare(na, nb) < 0
+	})
+
+	return m.SorterBase.Sort(99, walk.SortDescending)
+}
+
+func (m *ModeLookupModel) Checked(index int) bool {
+	return m.modes[index].Visible
+}
+
+func (m *ModeLookupModel) SetChecked(index int, checked bool) error {
+	m.modes[index].Visible = checked
+	return nil
+}
+
+func tabConfigLookups() declarative.TabPage {
+	var leTQSLConfigXMLLocation *walk.LineEdit
+	var tvBands *walk.TableView
+	var tvModes *walk.TableView
+
+	modelBands = NewBandLookupModel()
+	modelModes = NewModeLookupModel()
+
+	return declarative.TabPage{
+		Title:  "Lookups",
+		Layout: declarative.VBox{Alignment: declarative.AlignHNearVNear},
+		Children: []declarative.Widget{
+			declarative.Composite{
+				Layout: declarative.VBox{},
+				Children: []declarative.Widget{
+					declarative.Label{
+						Text: "Refresh from TQSL config.xml",
+					},
+					declarative.Composite{
+						Layout: declarative.HBox{MarginsZero: true},
+						Children: []declarative.Widget{
+							declarative.LineEdit{
+								AssignTo: &leTQSLConfigXMLLocation,
+								ReadOnly: true,
+							},
+							declarative.PushButton{
+								Text:    "\u2026",
+								MaxSize: declarative.Size{Width: 30},
+								MinSize: declarative.Size{Width: 30},
+								Font: declarative.Font{
+									Family:    "MS Shell Dlg 2",
+									PointSize: 9,
+								},
+								OnClicked: func() {
+									// prompt user for file
+									fname, err := OpenFilePickerWithInitialDir(configForm, "Select TQSL config.xml", "XML Files (*.xml)|*.xml|All Files (*.*)|*.*", filepath.Dir(config.LogbookServices.TQSL.ExeLocation))
+									if err != nil {
+										MsgError(configForm, err)
+										log.Printf("%+v", err)
+										return
+									}
+
+									if fname != nil {
+										err = leTQSLConfigXMLLocation.SetText(*fname)
+										if err != nil {
+											MsgError(configForm, err)
+											log.Printf("%+v", err)
+											return
+										}
+									}
+
+									bands, modes, err := config.ReadLookupsFromTQSL(*fname)
+									if err != nil {
+										MsgError(configForm, err)
+										log.Printf("%+v", err)
+										return
+									}
+
+									modelBands.Merge(bands)
+									modelModes.Merge(modes)
+								},
+							},
+						},
+					},
+				},
+			},
+			declarative.HSpacer{},
+			declarative.Label{
+				Text:          "Check the bands/modes you want available when logging a QSO",
+				TextAlignment: declarative.AlignCenter,
+			},
+			declarative.Composite{
+				Layout: declarative.HBox{},
+				Children: []declarative.Widget{
+					declarative.VSpacer{},
+					declarative.Composite{
+						Layout: declarative.VBox{},
+						Children: []declarative.Widget{
+							declarative.Label{
+								Text: "Bands",
+							},
+							declarative.TableView{
+								AssignTo:            &tvBands,
+								AlternatingRowBG:    true,
+								CheckBoxes:          true,
+								LastColumnStretched: true,
+								HeaderHidden:        true,
+								Columns: []declarative.TableViewColumn{
+									{Title: "Band"},
+								},
+								Model: modelBands,
+							},
+						},
+					},
+					declarative.VSpacer{},
+					declarative.Composite{
+						Layout: declarative.VBox{},
+						Children: []declarative.Widget{
+							declarative.Label{
+								Text: "Modes",
+							},
+							declarative.TableView{
+								AssignTo:            &tvModes,
+								AlternatingRowBG:    true,
+								CheckBoxes:          true,
+								LastColumnStretched: true,
+								HeaderHidden:        true,
+								Columns: []declarative.TableViewColumn{
+									{Title: "Mode"},
+								},
+								Model: modelModes,
+							},
+						},
+					},
+					declarative.VSpacer{},
 				},
 			},
 			declarative.HSpacer{},

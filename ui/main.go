@@ -28,7 +28,6 @@ var (
 	qsomodel       *QSOModel
 	selectedQSO    = &qso.QSO{}
 	bndSelectedQSO *walk.DataBinder
-
 	dxclustermodel *DXClusterModel
 )
 
@@ -55,6 +54,66 @@ func init() {
 	}
 }
 
+type BandListModel struct {
+	walk.BindingValueProvider
+	walk.ListModelBase
+	items []string
+}
+
+func NewBandListModel() *BandListModel {
+	m := &BandListModel{}
+	m.RefreshItems()
+
+	return m
+}
+
+func (m *BandListModel) RefreshItems() {
+	m.items = config.ListBandNames()
+	m.PublishItemsReset()
+}
+
+func (m *BandListModel) ItemCount() int {
+	return len(m.items)
+}
+
+func (m *BandListModel) BindingValue(index int) interface{} {
+	return m.items[index]
+}
+
+func (m *BandListModel) Value(index int) interface{} {
+	return m.items[index]
+}
+
+type ModeListModel struct {
+	walk.BindingValueProvider
+	walk.ListModelBase
+	items []string
+}
+
+func NewModeListModel() *ModeListModel {
+	m := &ModeListModel{}
+	m.RefreshItems()
+
+	return m
+}
+
+func (m *ModeListModel) RefreshItems() {
+	m.items = config.ListModeNames()
+	m.PublishItemsReset()
+}
+
+func (m *ModeListModel) ItemCount() int {
+	return len(m.items)
+}
+
+func (m *ModeListModel) BindingValue(index int) interface{} {
+	return m.items[index]
+}
+
+func (m *ModeListModel) Value(index int) interface{} {
+	return m.items[index]
+}
+
 // gologWindow creates the main window and begins processing of user input
 func GoLogWindow() error {
 	var err error
@@ -72,10 +131,8 @@ func GoLogWindow() error {
 	var pbCurrentDate *walk.PushButton
 
 	qsomodel = NewQSOModel()
-	bands := []string{""}
-	bands = append(bands, config.ListBandNames()...)
-	modes := []string{""}
-	modes = append(modes, config.ListModeNames()...)
+	bands := NewBandListModel()
+	modes := NewModeListModel()
 
 	// golog main window
 	err = declarative.MainWindow{
@@ -102,6 +159,10 @@ func GoLogWindow() error {
 						Text: "&Options...",
 						OnTriggered: func() {
 							updateConfig()
+
+							// in case lookups were changed
+							bands.RefreshItems()
+							modes.RefreshItems()
 						},
 					},
 					declarative.Separator{},
@@ -294,7 +355,7 @@ func GoLogWindow() error {
 								OnCurrentIndexChanged: func() {
 									idx := cbBand.CurrentIndex()
 									if idx >= 0 {
-										selectedQSO.Band = bands[idx]
+										selectedQSO.Band = bands.Value(idx).(string)
 									}
 								},
 							},
@@ -314,7 +375,7 @@ func GoLogWindow() error {
 								OnCurrentIndexChanged: func() {
 									idx := cbMode.CurrentIndex()
 									if idx >= 0 {
-										selectedQSO.Mode = modes[idx]
+										selectedQSO.Mode = modes.Value(idx).(string)
 									}
 								},
 							},
@@ -585,52 +646,6 @@ func GoLogWindow() error {
 
 	return nil
 }
-
-// // importTQSLconfig drives the user thru doing an import of the lookup data from the TQSL config.xml
-// func importTQSLconfig() {
-// 	// change working directory to where tqsl.exe is, thats where config.xml is also
-// 	err := os.Chdir(filepath.Dir(config.TQSL.ExeLocation))
-// 	if err != nil {
-// 		MsgError(nil, err)
-// 		log.Printf("%+v", err)
-// 		return
-// 	}
-
-// 	// prompt user for file
-// 	f, err := OpenFilePicker(
-// 		[]FileFilter{
-// 			{Description: "XML Files", Wildcard: "*.xml"},
-// 			{Description: "All Files", Wildcard: "*.*"},
-// 		},
-// 	)
-// 	if err != nil {
-// 		MsgError(nil, err)
-// 		log.Printf("%+v", err)
-// 		return
-// 	}
-
-// 	// update lookups
-// 	err = config.UpdateLookupsFromTQSL(*f)
-// 	if err != nil {
-// 		MsgError(nil, err)
-// 		log.Printf("%+v", err)
-// 		return
-// 	}
-
-// 	basefn, err := os.Executable()
-// 	if err != nil {
-// 		MsgError(nil, err)
-// 		log.Printf("%+v", err)
-// 		return
-// 	}
-
-// 	err = config.WriteLookupsToFile(filepath.Join(filepath.Dir(basefn), "lookups.yaml"))
-// 	if err != nil {
-// 		MsgError(nil, err)
-// 		log.Printf("%+v", err)
-// 		return
-// 	}
-// }
 
 func updateConfig() {
 	// stop background tasks
