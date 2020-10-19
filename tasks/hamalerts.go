@@ -8,6 +8,7 @@ import (
 	"net"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/bbathe/golog/config"
 	"github.com/bbathe/golog/models/spot"
@@ -53,6 +54,9 @@ func StartHamAlerts() {
 				return
 			default:
 				gatherHamAlerts()
+
+				// some connection problem, pause before retry
+				time.Sleep(time.Duration(60) * time.Second)
 			}
 		}
 	}()
