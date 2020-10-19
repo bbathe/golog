@@ -134,6 +134,7 @@ func dxClusterTableView() declarative.TableView {
 		AlternatingRowBG:    true,
 		CustomHeaderHeight:  30,
 		LastColumnStretched: true,
+		ColumnsOrderable:    false,
 		ContextMenuItems: []declarative.MenuItem{
 			declarative.Action{
 				Text: "QRZ page",
