@@ -589,6 +589,7 @@ func GoLogWindow() error {
 			},
 			qsoTableView(),
 			dxClusterTableView(),
+			mainStatusBar(),
 		},
 	}.Create()
 	if err != nil {

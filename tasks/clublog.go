@@ -22,23 +22,25 @@ import (
 var muxClublogUpload sync.Mutex
 
 // QSLClublog uploads all QSOs to Club Log that are older than config.QSLDelay minutes old
-func QSLClublog() {
+func QSLClublog() error {
 	muxClublogUpload.Lock()
 	defer muxClublogUpload.Unlock()
 
 	qsos, err := qso.FindQSLsToSend(qso.QSLClublog, config.LogbookServices.QSLDelay)
 	if err != nil {
 		log.Printf("%+v", err)
-		return
+		return err
 	}
 
 	if len(qsos) > 0 {
 		err = uploadQSOsToClublog(qsos, false)
 		if err != nil {
 			log.Printf("%+v", err)
-			return
+			return err
 		}
 	}
+
+	return nil
 }
 
 // QSLClublogFinal uploads all QSOs to Club Log regardless of how old they are

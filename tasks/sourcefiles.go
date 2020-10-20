@@ -14,7 +14,7 @@ import (
 var muxSourceFiles sync.Mutex
 
 // SourceFiles is the task that aggregates all changes from the adifs being monitored and inserts them into the qso database
-func SourceFiles() {
+func SourceFiles() error {
 	muxSourceFiles.Lock()
 	defer muxSourceFiles.Unlock()
 
@@ -24,7 +24,7 @@ func SourceFiles() {
 		f, err := os.Open(wf.Location)
 		if err != nil {
 			log.Printf("%+v", err)
-			return
+			return err
 		}
 		defer f.Close()
 
@@ -32,7 +32,7 @@ func SourceFiles() {
 		_, err = f.Seek(wf.Offset, 0)
 		if err != nil {
 			log.Printf("%+v", err)
-			return
+			return err
 		}
 
 		// be sure to process only whole adif records
@@ -47,7 +47,7 @@ func SourceFiles() {
 					break
 				} else {
 					log.Printf("%+v", err)
-					return
+					return err
 				}
 			} else {
 				// accumulate characters to test for whole record
@@ -60,7 +60,7 @@ func SourceFiles() {
 					qso, err := adif.QSOFromADIFRecord(record)
 					if err != nil {
 						log.Printf("%+v", err)
-						return
+						return err
 					}
 
 					// if not set, assume current station callsign
@@ -72,7 +72,7 @@ func SourceFiles() {
 					err = qso.Add()
 					if err != nil {
 						log.Printf("%+v", err)
-						return
+						return err
 					}
 
 					// accumlate bytes processed
@@ -97,7 +97,9 @@ func SourceFiles() {
 		err = config.Write()
 		if err != nil {
 			log.Printf("%+v", err)
-			return
+			return err
 		}
 	}
+
+	return nil
 }

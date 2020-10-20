@@ -20,23 +20,25 @@ import (
 var muxQrzUpload sync.Mutex
 
 // QSLQrz uploads all QSOs to QRZ.com that are older than config.QSLDelay minutes old
-func QSLQrz() {
+func QSLQrz() error {
 	muxQrzUpload.Lock()
 	defer muxQrzUpload.Unlock()
 
 	qsos, err := qso.FindQSLsToSend(qso.QSLQrz, config.LogbookServices.QSLDelay)
 	if err != nil {
 		log.Printf("%+v", err)
-		return
+		return err
 	}
 
 	if len(qsos) > 0 {
 		err = uploadQSOsToQRZ(qsos)
 		if err != nil {
 			log.Printf("%+v", err)
-			return
+			return err
 		}
 	}
+
+	return nil
 }
 
 // QSLQrzFinal uploads all QSOs to QRZ.com regardless of how old they are

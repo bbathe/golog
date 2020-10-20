@@ -53,7 +53,9 @@ func StartHamAlerts() {
 			case <-quitHamAlert:
 				return
 			default:
+				setTaskStatus(TaskHamAlert, TaskStatusOK)
 				gatherHamAlerts()
+				setTaskStatus(TaskHamAlert, TaskStatusFailed)
 
 				// some connection problem, pause before retry
 				time.Sleep(time.Duration(60) * time.Second)

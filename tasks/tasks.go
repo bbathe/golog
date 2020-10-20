@@ -12,15 +12,11 @@ var (
 	mutexQuitChannels sync.Mutex
 	quitChannels      []chan bool
 	quitStartup       chan bool
-)
 
-// max returns the maximum of integers a or b
-func max(a, b int) int {
-	if a > b {
-		return a
-	}
-	return b
-}
+	mutexTaskStatuses sync.Mutex
+	statuses          []GoLogTaskStatus
+	statusHandlers    []TaskStatusChangeEventHandler
+)
 
 // Start starts all background tasks
 func Start() {
@@ -35,25 +31,24 @@ func Start() {
 	// our quit channel
 	quitStartup = make(chan bool)
 
-	// fire off thread to collect spots from HamAlert, if configured
-	if config.ClusterServices.HamAlert.Validate() == nil {
-		StartHamAlerts()
-	}
+	// create slots for statuses
+	statuses = make([]GoLogTaskStatus, int(TaskLast))
+	statusHandlers = make([]TaskStatusChangeEventHandler, 0)
 
 	// define tasks that run every minute
 	tasksOneMinute := []func(){
-		SourceFiles,
+		taskWrapper(TaskSourceFiles, SourceFiles),
 	}
 
 	// add services that are configured
 	if config.LogbookServices.ClubLog.Validate() == nil {
-		tasksOneMinute = append(tasksOneMinute, QSLClublog)
+		tasksOneMinute = append(tasksOneMinute, taskWrapper(TaskQSLClubLog, QSLClublog))
 	}
 	if config.LogbookServices.EQSL.Validate() == nil {
-		tasksOneMinute = append(tasksOneMinute, QSLEqsl)
+		tasksOneMinute = append(tasksOneMinute, taskWrapper(TaskQSLEQSL, QSLEqsl))
 	}
 	if config.LogbookServices.QRZ.Validate() == nil {
-		tasksOneMinute = append(tasksOneMinute, QSLQrz)
+		tasksOneMinute = append(tasksOneMinute, taskWrapper(TaskQSLQRZ, QSLQrz))
 	}
 
 	// create quit channels
@@ -62,7 +57,16 @@ func Start() {
 	// since we have a bunch of tasks to start and some sympathy toward our host
 	// we are going to stagger the starting of the tasks
 	// calculate spacing between starting tasks
-	space := max(60/len(tasksOneMinute), 1)
+	space := 60 / len(tasksOneMinute)
+	if space < 1 {
+		space = 1
+	}
+
+	// fire off long-lived thread to collect spots from HamAlert, if configured
+	// statues are updated directly in the HamAlerts module
+	if config.ClusterServices.HamAlert.Validate() == nil {
+		StartHamAlerts()
+	}
 
 	// schedule the tasks
 	for _, fn := range tasksOneMinute {

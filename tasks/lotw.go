@@ -17,23 +17,25 @@ import (
 var muxLotwUpload sync.Mutex
 
 // QSLLotw uploads all QSOs to LoTW that are older than config.QSLDelay minutes old
-func QSLLotw() {
+func QSLLotw() error {
 	muxLotwUpload.Lock()
 	defer muxLotwUpload.Unlock()
 
 	qsos, err := qso.FindQSLsToSend(qso.QSLLotw, config.LogbookServices.QSLDelay)
 	if err != nil {
 		log.Printf("%+v", err)
-		return
+		return err
 	}
 
 	if len(qsos) > 0 {
 		err = uploadQSOsToLoTW(qsos)
 		if err != nil {
 			log.Printf("%+v", err)
-			return
+			return err
 		}
 	}
+
+	return nil
 }
 
 // QSLLotwFinal uploads all QSOs to LoTW regardless of how old they are

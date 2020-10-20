@@ -22,23 +22,25 @@ import (
 var muxEqslUpload sync.Mutex
 
 // QSLEqsl uploads all QSOs to eQSL that are older than config.QSLDelay minutes old
-func QSLEqsl() {
+func QSLEqsl() error {
 	muxEqslUpload.Lock()
 	defer muxEqslUpload.Unlock()
 
 	qsos, err := qso.FindQSLsToSend(qso.QSLEqsl, config.LogbookServices.QSLDelay)
 	if err != nil {
 		log.Printf("%+v", err)
-		return
+		return err
 	}
 
 	if len(qsos) > 0 {
 		err = uploadQSOsToEqsl(qsos)
 		if err != nil {
 			log.Printf("%+v", err)
-			return
+			return err
 		}
 	}
+
+	return nil
 }
 
 // QSLEqslFinal uploads all QSOs to eQSL regardless of how old they are
