@@ -242,6 +242,37 @@ func qsoTableView() declarative.TableView {
 					}
 				},
 			},
+			declarative.Action{
+				Text: "QSOs with call",
+				OnTriggered: func() {
+					idx := tv.CurrentIndex()
+					if idx >= 0 {
+						// copy call to new qso
+						*selectedQSO = qso.QSO{
+							Call: qsomodel.items[idx].Call,
+						}
+
+						// refresh
+						err := bndSelectedQSO.Reset()
+						if err != nil {
+							MsgError(mainWin, err)
+							log.Printf("%+v", err)
+							return
+						}
+
+						// search only on call
+						qsomodel.Search(
+							"",
+							"",
+							qsomodel.items[idx].Call,
+							"",
+							"",
+							"",
+							"",
+						)
+					}
+				},
+			},
 		},
 		Columns: []declarative.TableViewColumn{
 			{Title: "Date"},
