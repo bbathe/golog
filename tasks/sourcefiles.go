@@ -4,14 +4,11 @@ import (
 	"io"
 	"log"
 	"os"
-	"path/filepath"
 	"strings"
 	"sync"
-	"time"
 
 	"github.com/bbathe/golog/adif"
 	"github.com/bbathe/golog/config"
-	"github.com/bbathe/golog/models/qso"
 )
 
 var muxSourceFiles sync.Mutex
@@ -21,81 +18,13 @@ func SourceFiles() {
 	muxSourceFiles.Lock()
 	defer muxSourceFiles.Unlock()
 
-	// form merged filename
-	mergedFile := filepath.Join(config.WorkingDirectory, "QSOS-"+time.Now().UTC().Format("2006-Jan-02_15-04-05")+".adif")
-
-	// create a file with changes from all the sourcefiles merged into one
-	err := createMergedChanges(mergedFile)
-	if err != nil {
-		log.Printf("%+v", err)
-		return
-	}
-
-	// see if there are any qsos to process
-	n, err := getFileSize(mergedFile)
-	if err != nil {
-		log.Printf("%+v", err)
-		return
-	}
-
-	// remove file if no qsos
-	if n == 0 {
-		err = os.Remove(mergedFile)
-		if err != nil {
-			log.Printf("%+v", err)
-			return
-		}
-
-		// done
-		return
-	}
-
-	// read in qsos
-	qsos, err := adif.ReadFromFile(mergedFile, qso.NotSent, qso.NotSent, qso.NotSent, qso.NotSent)
-	if err != nil {
-		log.Printf("%+v", err)
-		return
-	}
-
-	// put in db
-	err = qso.BulkAdd(qsos)
-	if err != nil {
-		log.Printf("%+v", err)
-		return
-	}
-}
-
-// getFileSize returns the size of file fname
-func getFileSize(fname string) (int64, error) {
-	fi, err := os.Stat(fname)
-	if err != nil {
-		log.Printf("%+v %s", err, fname)
-		return 0, err
-	}
-
-	// return size
-	return fi.Size(), nil
-}
-
-// createMergedChanges cycles thru the sourcefiles in config and creates merged file with the new adif records since the last run
-func createMergedChanges(mergedFile string) error {
-	configChanged := false
-
-	// open file to merge to
-	fmerged, err := os.Create(mergedFile)
-	if err != nil {
-		log.Printf("%+v", err)
-		return err
-	}
-	defer fmerged.Close()
-
 	// process all sourcefiles
 	for i, wf := range config.SourceFiles {
 		// open file to get adif records added since last execution
 		f, err := os.Open(wf.Location)
 		if err != nil {
 			log.Printf("%+v", err)
-			return err
+			return
 		}
 		defer f.Close()
 
@@ -103,11 +32,11 @@ func createMergedChanges(mergedFile string) error {
 		_, err = f.Seek(wf.Offset, 0)
 		if err != nil {
 			log.Printf("%+v", err)
-			return err
+			return
 		}
 
-		// be sure to write only whole adif records
-		var nwrite int64
+		// be sure to process only whole adif records
+		var nprocessed int64
 		var record string
 		var lowerRecord string
 		c := []byte{0}
@@ -118,7 +47,7 @@ func createMergedChanges(mergedFile string) error {
 					break
 				} else {
 					log.Printf("%+v", err)
-					return err
+					return
 				}
 			} else {
 				// accumulate characters to test for whole record
@@ -127,15 +56,27 @@ func createMergedChanges(mergedFile string) error {
 
 				// got to the end of a record?
 				if strings.HasSuffix(lowerRecord, "<eor>") {
-					// write to merged file
-					nw, err := fmerged.WriteString(record)
+					// parse record to QSO
+					qso, err := adif.QSOFromADIFRecord(record)
 					if err != nil {
 						log.Printf("%+v", err)
-						return err
+						return
 					}
 
-					// accumlate bytes written
-					nwrite += int64(nw)
+					// if not set, assume current station callsign
+					if qso.StationCallsign == "" {
+						qso.StationCallsign = config.Station.Callsign
+					}
+
+					// persist to database
+					err = qso.Add()
+					if err != nil {
+						log.Printf("%+v", err)
+						return
+					}
+
+					// accumlate bytes processed
+					nprocessed += int64(len(record))
 
 					// reset record
 					record = ""
@@ -145,22 +86,18 @@ func createMergedChanges(mergedFile string) error {
 		}
 
 		// anything processed?
-		if nwrite == 0 {
+		if nprocessed == 0 {
 			continue
 		}
 
 		// update offset
-		config.SourceFiles[i].Offset += nwrite
-		configChanged = true
-	}
+		config.SourceFiles[i].Offset += nprocessed
 
-	if configChanged {
+		// write out changes individually
 		err = config.Write()
 		if err != nil {
 			log.Printf("%+v", err)
-			return err
+			return
 		}
 	}
-
-	return nil
 }
