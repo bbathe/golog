@@ -138,7 +138,7 @@ func uploadQSOsToQRZ(qsos []qso.QSO) error {
 			log.Printf("%+v", err)
 			return err
 		}
-		if m.Get("RESULT") != "OK" {
+		if m.Get("RESULT") != "OK" && m.Get("REASON") != "Unable to add QSO to database: duplicate" {
 			err := fmt.Errorf("api returned bad status")
 			log.Printf("%+v", err)
 			log.Printf("StatusCode: %d", resp.StatusCode)
