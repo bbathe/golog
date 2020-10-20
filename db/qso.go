@@ -40,7 +40,7 @@ func OpenQSODb() error {
 	}
 
 	// make connection
-	QSODb, err = sqlx.Connect("sqlite3", config.QSODatabase.Location+"?cache=shared&_foreign_keys=true&_loc=UTC")
+	QSODb, err = sqlx.Connect("sqlite3", config.QSODatabase.Location+"?cache=shared&_loc=UTC")
 	if err != nil {
 		log.Printf("%+v", err)
 		return err

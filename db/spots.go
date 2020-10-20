@@ -23,7 +23,7 @@ func OpenSpotDb() error {
 	}
 
 	// make connection
-	SpotDb, err = sqlx.Connect("sqlite3", "file:spot.db?mode=memory&cache=shared&_foreign_keys=true&_loc=UTC")
+	SpotDb, err = sqlx.Connect("sqlite3", "file:spot.db?mode=memory&cache=shared&_loc=UTC")
 	if err != nil {
 		log.Printf("%+v", err)
 		return err
