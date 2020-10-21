@@ -53,7 +53,7 @@ func OptionsWindow(parent *walk.MainWindow) error {
 	if parent == nil {
 		var configWin *walk.MainWindow
 
-		// if no parent, make a temporary one
+		// if no parent, make it a window
 		err := declarative.MainWindow{
 			AssignTo: &configWin,
 			Title:    appName + " Options",

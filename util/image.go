@@ -6,7 +6,7 @@ import (
 )
 
 func GenerateStatusImage(clr color.Color) image.Image {
-	var w, h int = 8, 16
+	var w, h int = 16, 8
 
 	// create image with a filled rectangle
 	img := image.NewRGBA(image.Rect(0, 0, w, h))
