@@ -41,14 +41,17 @@ func Start() {
 	}
 
 	// add services that are configured
-	if config.LogbookServices.ClubLog.Validate() == nil {
-		tasksOneMinute = append(tasksOneMinute, taskWrapper(TaskQSLClubLog, QSLClublog))
+	if config.LogbookServices.TQSL.Validate() == nil {
+		tasksOneMinute = append(tasksOneMinute, taskWrapper(TaskQSLLoTW, QSLLotw))
 	}
 	if config.LogbookServices.EQSL.Validate() == nil {
 		tasksOneMinute = append(tasksOneMinute, taskWrapper(TaskQSLEQSL, QSLEqsl))
 	}
 	if config.LogbookServices.QRZ.Validate() == nil {
 		tasksOneMinute = append(tasksOneMinute, taskWrapper(TaskQSLQRZ, QSLQrz))
+	}
+	if config.LogbookServices.ClubLog.Validate() == nil {
+		tasksOneMinute = append(tasksOneMinute, taskWrapper(TaskQSLClubLog, QSLClublog))
 	}
 
 	// create quit channels

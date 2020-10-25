@@ -28,7 +28,7 @@ func QSLLotw() error {
 	}
 
 	if len(qsos) > 0 {
-		err = uploadQSOsToLoTW(qsos)
+		err = uploadQSOsToLoTW(qsos, false)
 		if err != nil {
 			log.Printf("%+v", err)
 			return err
@@ -50,7 +50,7 @@ func QSLLotwFinal() {
 	}
 
 	if len(qsos) > 0 {
-		err = uploadQSOsToLoTW(qsos)
+		err = uploadQSOsToLoTW(qsos, true)
 		if err != nil {
 			log.Printf("%+v", err)
 			return
@@ -59,48 +59,51 @@ func QSLLotwFinal() {
 }
 
 // uploadQSOsToLoTW leverages tqsl to upload qsos to LoTW
-func uploadQSOsToLoTW(qsos []qso.QSO) error {
-	// form working file name
-	fname := filepath.Join(config.WorkingDirectory, "LoTW-"+time.Now().UTC().Format("2006-Jan-02_15-04-05")+".adif")
+func uploadQSOsToLoTW(qsos []qso.QSO, forceBulk bool) error {
+	// only bulk so make sure there's a reasonable batch
+	if len(qsos) > 15 || (forceBulk && len(qsos) > 1) {
+		// form working file name
+		fname := filepath.Join(config.WorkingDirectory, "LoTW-"+time.Now().UTC().Format("2006-Jan-02_15-04-05")+".adif")
 
-	// write qsos as adif to file
-	err := adif.WriteToFile(qsos, fname)
-	if err != nil {
-		log.Printf("%+v", err)
-		return err
-	}
+		// write qsos as adif to file
+		err := adif.WriteToFile(qsos, fname)
+		if err != nil {
+			log.Printf("%+v", err)
+			return err
+		}
 
-	var stdout bytes.Buffer
-	var stderr bytes.Buffer
+		var stdout bytes.Buffer
+		var stderr bytes.Buffer
 
-	// setup command execution, capturing stdout & stderr
-	// #nosec G204
-	cmd := exec.Command(
-		config.LogbookServices.TQSL.ExeLocation,
-		"--quiet",
-		"--batch",
-		"--nodate",
-		"--upload",
-		fmt.Sprintf("--location=%s", config.LogbookServices.TQSL.StationLocationName),
-		fname,
-	)
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
+		// setup command execution, capturing stdout & stderr
+		// #nosec G204
+		cmd := exec.Command(
+			config.LogbookServices.TQSL.ExeLocation,
+			"--quiet",
+			"--batch",
+			"--nodate",
+			"--upload",
+			fmt.Sprintf("--location=%s", config.LogbookServices.TQSL.StationLocationName),
+			fname,
+		)
+		cmd.Stdout = &stdout
+		cmd.Stderr = &stderr
 
-	// doit!
-	err = cmd.Run()
-	if err != nil {
-		log.Printf("error: %+v", err)
-		log.Printf("stdout: %s", stdout.String())
-		log.Printf("stderr: %s", stderr.String())
-		return err
-	}
+		// doit!
+		err = cmd.Run()
+		if err != nil {
+			log.Printf("error: %+v", err)
+			log.Printf("stdout: %s", stdout.String())
+			log.Printf("stderr: %s", stderr.String())
+			return err
+		}
 
-	// set as sent in db
-	err = qso.UpdateQSLsToSent(qsos, qso.QSLLotw)
-	if err != nil {
-		log.Printf("%+v", err)
-		return err
+		// set as sent in db
+		err = qso.UpdateQSLsToSent(qsos, qso.QSLLotw)
+		if err != nil {
+			log.Printf("%+v", err)
+			return err
+		}
 	}
 
 	return nil
