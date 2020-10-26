@@ -70,7 +70,7 @@ func uploadQSOsToClublog(qsos []qso.QSO, forceBulk bool) error {
 	var url string
 
 	// handle with bulk call or realtime call?
-	if len(qsos) > 15 || (forceBulk && len(qsos) > 1) {
+	if len(qsos) > 16 || (forceBulk && len(qsos) > 1) {
 		// form working file name
 		fname := filepath.Join(config.WorkingDirectory, "Clublog-"+time.Now().UTC().Format("2006-Jan-02_15-04-05")+".adif")
 
