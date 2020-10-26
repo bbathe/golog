@@ -273,6 +273,20 @@ func qsoTableView() declarative.TableView {
 					}
 				},
 			},
+			declarative.Action{
+				Text: "Copy call",
+				OnTriggered: func() {
+					idx := tv.CurrentIndex()
+					if idx >= 0 {
+						err := copyToClipboard(qsomodel.items[idx].Call)
+						if err != nil {
+							MsgError(mainWin, err)
+							log.Printf("%+v", err)
+							return
+						}
+					}
+				},
+			},
 		},
 		Columns: []declarative.TableViewColumn{
 			{Title: "Date"},

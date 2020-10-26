@@ -4,6 +4,7 @@ import (
 	"log"
 	"sort"
 
+	"github.com/bbathe/golog/models/qso"
 	"github.com/bbathe/golog/models/spot"
 	"github.com/lxn/walk"
 	"github.com/lxn/walk/declarative"
@@ -161,6 +162,37 @@ func dxClusterTableView() declarative.TableView {
 							log.Printf("%+v", err)
 							return
 						}
+					}
+				},
+			},
+			declarative.Action{
+				Text: "QSOs with call",
+				OnTriggered: func() {
+					idx := tv.CurrentIndex()
+					if idx >= 0 {
+						// copy call to new qso
+						*selectedQSO = qso.QSO{
+							Call: dxclustermodel.items[idx].Call,
+						}
+
+						// refresh
+						err := bndSelectedQSO.Reset()
+						if err != nil {
+							MsgError(mainWin, err)
+							log.Printf("%+v", err)
+							return
+						}
+
+						// search only on call
+						qsomodel.Search(
+							"",
+							"",
+							dxclustermodel.items[idx].Call,
+							"",
+							"",
+							"",
+							"",
+						)
 					}
 				},
 			},
