@@ -196,13 +196,13 @@ func (m *QSOModel) ResetRows() {
 // Search establishes the selection criteria in the model
 func (m *QSOModel) Search(date, time, call, band, mode, rstrcvd, rstsent string) {
 	m.searchCriteria = &qso.QSO{
-		Date:    date,
-		Time:    time,
-		Call:    call,
-		Band:    band,
-		Mode:    mode,
-		RSTRcvd: rstrcvd,
-		RSTSent: rstsent,
+		Date:    strings.TrimSpace(date),
+		Time:    strings.TrimSpace(time),
+		Call:    strings.TrimSpace(call),
+		Band:    strings.TrimSpace(band),
+		Mode:    strings.TrimSpace(mode),
+		RSTRcvd: strings.TrimSpace(rstrcvd),
+		RSTSent: strings.TrimSpace(rstsent),
 	}
 
 	m.ResetRows()
