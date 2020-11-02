@@ -559,6 +559,21 @@ func GoLogWindow() error {
 								leRSTSent.Text(),
 							)
 						},
+						OnMouseDown: func(x, y int, button walk.MouseButton) {
+							if button != walk.RightButton {
+								return
+							}
+
+							qsomodel.Search(
+								leDate.Text()+"%",
+								leTime.Text()+"%",
+								leCall.Text()+"%",
+								cbBand.Text()+"%",
+								cbMode.Text()+"%",
+								leRSTRcvd.Text()+"%",
+								leRSTSent.Text()+"%",
+							)
+						},
 					},
 					declarative.PushButton{
 						Text:        "Cancel",
