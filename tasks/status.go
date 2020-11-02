@@ -18,6 +18,7 @@ type GoLogTaskStatus int
 const (
 	TaskStatusOK GoLogTaskStatus = iota
 	TaskStatusFailed
+	TaskStatusNotRunning
 )
 
 // allow callers to register to recieve event after any status change occurs
@@ -25,16 +26,20 @@ type TaskStatusChangeEventHandler func([]GoLogTaskStatus)
 
 func Attach(handler TaskStatusChangeEventHandler) int {
 	statusHandlers = append(statusHandlers, handler)
-	return len(statusHandlers) - 1
+	h := len(statusHandlers) - 1
+
+	return h
 }
 
 func Detach(handle int) {
 	statusHandlers[handle] = nil
 }
 
-func publishTaskStatusChangeChange() {
+func publishTaskStatusChange() {
 	for _, h := range statusHandlers {
-		h(statuses)
+		if h != nil {
+			h(statuses[:])
+		}
 	}
 }
 
@@ -44,7 +49,7 @@ func setTaskStatus(t GoLogTask, s GoLogTaskStatus) {
 
 	if t < TaskLast {
 		statuses[t] = s
-		publishTaskStatusChangeChange()
+		publishTaskStatusChange()
 	}
 }
 

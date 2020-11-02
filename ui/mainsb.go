@@ -19,14 +19,19 @@ var (
 	icClubLog     *walk.ImageView
 	icHamAlert    *walk.ImageView
 
-	imgOK     walk.Image
-	imgFailed walk.Image
+	imgOK         walk.Image
+	imgFailed     walk.Image
+	imgNotRunning walk.Image
 )
 
 func statusImage(s tasks.GoLogTaskStatus) walk.Image {
-	if s == tasks.TaskStatusOK {
+	switch s {
+	case tasks.TaskStatusOK:
 		return imgOK
+	case tasks.TaskStatusNotRunning:
+		return imgNotRunning
 	}
+
 	return imgFailed
 }
 
@@ -87,36 +92,41 @@ func mainStatusBar() declarative.Composite {
 		log.Printf("%+v", err)
 	}
 
+	imgNotRunning, err = walk.NewIconFromImageForDPI(util.GenerateStatusImage(color.RGBA{R: 128, G: 128, B: 128, A: 255}), 96)
+	if err != nil {
+		log.Printf("%+v", err)
+	}
+
 	c := declarative.Composite{
 		Layout: declarative.HBox{MarginsZero: true},
 		Children: []declarative.Widget{
 			declarative.ImageView{
-				Image:       imgOK,
+				Image:       imgNotRunning,
 				AssignTo:    &icSourceFiles,
 				ToolTipText: "Source Files",
 			},
 			declarative.ImageView{
-				Image:       imgOK,
+				Image:       imgNotRunning,
 				AssignTo:    &icLoTW,
 				ToolTipText: "LoTW",
 			},
 			declarative.ImageView{
-				Image:       imgOK,
+				Image:       imgNotRunning,
 				AssignTo:    &icEQSL,
 				ToolTipText: "eQSL",
 			},
 			declarative.ImageView{
-				Image:       imgOK,
+				Image:       imgNotRunning,
 				AssignTo:    &icQRZ,
 				ToolTipText: "QRZ",
 			},
 			declarative.ImageView{
-				Image:       imgOK,
+				Image:       imgNotRunning,
 				AssignTo:    &icClubLog,
 				ToolTipText: "Club Log",
 			},
 			declarative.ImageView{
-				Image:       imgOK,
+				Image:       imgNotRunning,
 				AssignTo:    &icHamAlert,
 				ToolTipText: "HamAlert",
 			},

@@ -15,7 +15,6 @@ import (
 )
 
 var (
-	conHamAlert  net.Conn
 	quitHamAlert chan bool
 )
 
@@ -67,8 +66,6 @@ func StartHamAlerts() {
 // StopHamAlerts shutdowns the collection of spots from HamAlert
 func StopHamAlerts() {
 	close(quitHamAlert)
-
-	conHamAlert.Close()
 }
 
 // gatherHamAlerts does the real work of inetgrating with HamAlert to collect spot
@@ -78,6 +75,7 @@ func gatherHamAlerts() {
 	var msg *string
 
 	// connect
+	var conHamAlert net.Conn
 	conHamAlert, err = net.Dial("tcp", config.ClusterServices.HamAlert.HostPort)
 	if err != nil {
 		log.Printf("%+v", err)

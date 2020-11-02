@@ -14,7 +14,7 @@ var (
 	quitStartup       chan bool
 
 	mutexTaskStatuses sync.Mutex
-	statuses          []GoLogTaskStatus
+	statuses          [int(TaskLast)]GoLogTaskStatus
 	statusHandlers    []TaskStatusChangeEventHandler
 )
 
@@ -31,9 +31,10 @@ func Start() {
 	// our quit channel
 	quitStartup = make(chan bool)
 
-	// create slots for statuses
-	statuses = make([]GoLogTaskStatus, int(TaskLast))
-	statusHandlers = make([]TaskStatusChangeEventHandler, 0)
+	// set status of all tasks to not running
+	for t := 0; t < int(TaskLast); t++ {
+		setTaskStatus(GoLogTask(t), TaskStatusNotRunning)
+	}
 
 	// define tasks that run every minute
 	tasksOneMinute := []func(){
@@ -110,6 +111,11 @@ func Pause() {
 		close(q)
 	}
 	quitChannels = make([]chan bool, 0)
+
+	// set status of all tasks to not running
+	for t := 0; t < int(TaskLast); t++ {
+		setTaskStatus(GoLogTask(t), TaskStatusNotRunning)
+	}
 }
 
 // Shutdown stops all background tasks, and runs cleanup tasks
