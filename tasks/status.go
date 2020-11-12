@@ -25,6 +25,9 @@ const (
 type TaskStatusChangeEventHandler func([]GoLogTaskStatus)
 
 func Attach(handler TaskStatusChangeEventHandler) int {
+	mutexTaskStatuses.Lock()
+	defer mutexTaskStatuses.Unlock()
+
 	statusHandlers = append(statusHandlers, handler)
 	h := len(statusHandlers) - 1
 
@@ -32,6 +35,9 @@ func Attach(handler TaskStatusChangeEventHandler) int {
 }
 
 func Detach(handle int) {
+	mutexTaskStatuses.Lock()
+	defer mutexTaskStatuses.Unlock()
+
 	statusHandlers[handle] = nil
 }
 

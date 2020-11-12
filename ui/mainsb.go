@@ -36,46 +36,52 @@ func statusImage(s tasks.GoLogTaskStatus) walk.Image {
 }
 
 func updateStatuses(statuses []tasks.GoLogTaskStatus) {
-	err := icSourceFiles.SetImage(statusImage(statuses[tasks.TaskSourceFiles]))
-	if err != nil {
-		MsgError(mainWin, err)
-		log.Printf("%+v", err)
-		return
+	if icSourceFiles != nil {
+		err := icSourceFiles.SetImage(statusImage(statuses[tasks.TaskSourceFiles]))
+		if err != nil {
+			log.Printf("%+v", err)
+			return
+		}
 	}
 
-	err = icLoTW.SetImage(statusImage(statuses[tasks.TaskQSLLoTW]))
-	if err != nil {
-		MsgError(mainWin, err)
-		log.Printf("%+v", err)
-		return
+	if icLoTW != nil {
+		err := icLoTW.SetImage(statusImage(statuses[tasks.TaskQSLLoTW]))
+		if err != nil {
+			log.Printf("%+v", err)
+			return
+		}
 	}
 
-	err = icEQSL.SetImage(statusImage(statuses[tasks.TaskQSLEQSL]))
-	if err != nil {
-		MsgError(mainWin, err)
-		log.Printf("%+v", err)
-		return
+	if icEQSL != nil {
+		err := icEQSL.SetImage(statusImage(statuses[tasks.TaskQSLEQSL]))
+		if err != nil {
+			log.Printf("%+v", err)
+			return
+		}
 	}
 
-	err = icQRZ.SetImage(statusImage(statuses[tasks.TaskQSLQRZ]))
-	if err != nil {
-		MsgError(mainWin, err)
-		log.Printf("%+v", err)
-		return
+	if icQRZ != nil {
+		err := icQRZ.SetImage(statusImage(statuses[tasks.TaskQSLQRZ]))
+		if err != nil {
+			log.Printf("%+v", err)
+			return
+		}
 	}
 
-	err = icClubLog.SetImage(statusImage(statuses[tasks.TaskQSLClubLog]))
-	if err != nil {
-		MsgError(mainWin, err)
-		log.Printf("%+v", err)
-		return
+	if icClubLog != nil {
+		err := icClubLog.SetImage(statusImage(statuses[tasks.TaskQSLClubLog]))
+		if err != nil {
+			log.Printf("%+v", err)
+			return
+		}
 	}
 
-	err = icHamAlert.SetImage(statusImage(statuses[tasks.TaskHamAlert]))
-	if err != nil {
-		MsgError(mainWin, err)
-		log.Printf("%+v", err)
-		return
+	if icHamAlert != nil {
+		err := icHamAlert.SetImage(statusImage(statuses[tasks.TaskHamAlert]))
+		if err != nil {
+			log.Printf("%+v", err)
+			return
+		}
 	}
 }
 
