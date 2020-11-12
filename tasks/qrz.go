@@ -1,13 +1,13 @@
 package tasks
 
 import (
-	"bytes"
 	"fmt"
 	"io/ioutil"
 	"log"
-	"mime/multipart"
 	"net/http"
 	"net/url"
+	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -63,49 +63,35 @@ func QSLQrzFinal() {
 
 // uploadQSOsToQRZ uploads qsos to QRZ.com
 func uploadQSOsToQRZ(qsos []qso.QSO) error {
+	i := 0
 	for _, q := range qsos {
+		if i > 0 {
+			// pause between uploads
+			time.Sleep(time.Duration(1) * time.Second)
+		}
+		i++
+
+		// set the required form fields
+		formData := url.Values{}
 		s, err := adif.QSOToADIFRecord(q)
 		if err != nil {
 			log.Printf("%+v", err)
 			return err
 		}
-
-		reqBody := &bytes.Buffer{}
-		w := multipart.NewWriter(reqBody)
-
-		// add station_callsign to adif
-		err = w.WriteField("ADIF", fmt.Sprintf("<station_callsign:%d>%s%s", len(config.Station.Callsign), config.Station.Callsign, s))
-		if err != nil {
-			log.Printf("%+v", err)
-			return err
-		}
-
-		// set the other form fields required
-		err = w.WriteField("KEY", config.LogbookServices.QRZ.APIKey)
-		if err != nil {
-			log.Printf("%+v", err)
-			return err
-		}
-		err = w.WriteField("ACTION", "INSERT")
-		if err != nil {
-			log.Printf("%+v", err)
-			return err
-		}
-
-		// done forming request body
-		err = w.Close()
-		if err != nil {
-			log.Printf("%+v", err)
-			return err
-		}
+		formData.Set("ADIF", s)
+		formData.Set("KEY", config.LogbookServices.QRZ.APIKey)
+		formData.Set("ACTION", "INSERT")
+		formData.Set("OPTION", "REPLACE")
 
 		// setup request
-		req, err := http.NewRequest("POST", "https://logbook.qrz.com/api", reqBody)
+		reqBody := formData.Encode()
+		req, err := http.NewRequest("POST", "https://logbook.qrz.com/api", strings.NewReader(reqBody))
 		if err != nil {
 			log.Printf("%+v", err)
 			return err
 		}
-		req.Header.Set("Content-Type", w.FormDataContentType())
+		req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+		req.Header.Add("Content-Length", strconv.Itoa(len(reqBody)))
 
 		// do POST
 		client := http.Client{
@@ -140,11 +126,12 @@ func uploadQSOsToQRZ(qsos []qso.QSO) error {
 			log.Printf("%+v", err)
 			return err
 		}
-		if m.Get("RESULT") != "OK" && m.Get("REASON") != "Unable to add QSO to database: duplicate" {
+		if m.Get("RESULT") == "FAIL" {
 			err := fmt.Errorf("api returned bad status")
 			log.Printf("%+v", err)
 			log.Printf("StatusCode: %d", resp.StatusCode)
 			log.Printf("Header: %s", resp.Header)
+			log.Printf("Return Values: %+v", m)
 			log.Printf("Body: %s", string(respBody))
 			return err
 		}
@@ -156,6 +143,5 @@ func uploadQSOsToQRZ(qsos []qso.QSO) error {
 			return err
 		}
 	}
-
 	return nil
 }
