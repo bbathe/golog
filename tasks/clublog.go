@@ -33,7 +33,7 @@ func QSLClublog() error {
 	}
 
 	if len(qsos) > 0 {
-		err = uploadQSOsToClublog(qsos, false)
+		err = uploadQSOsToClublog(qsos)
 		if err != nil {
 			log.Printf("%+v", err)
 			return err
@@ -55,7 +55,7 @@ func QSLClublogFinal() {
 	}
 
 	if len(qsos) > 0 {
-		err = uploadQSOsToClublog(qsos, true)
+		err = uploadQSOsToClublog(qsos)
 		if err != nil {
 			log.Printf("%+v", err)
 			return
@@ -64,13 +64,13 @@ func QSLClublogFinal() {
 }
 
 // uploadQSOsToClublog uploads qsos to Club Log
-func uploadQSOsToClublog(qsos []qso.QSO, forceBulk bool) error {
+func uploadQSOsToClublog(qsos []qso.QSO) error {
 	reqBody := &bytes.Buffer{}
 	w := multipart.NewWriter(reqBody)
 	var url string
 
 	// handle with bulk call or realtime call?
-	if len(qsos) > 16 || (forceBulk && len(qsos) > 0) {
+	if len(qsos) > 1 {
 		// form working file name
 		fname := filepath.Join(config.WorkingDirectory, "Clublog-"+time.Now().UTC().Format("2006-Jan-02_15-04-05")+".adif")
 
