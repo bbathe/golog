@@ -59,9 +59,9 @@ func QSLLotwFinal() {
 }
 
 // uploadQSOsToLoTW leverages tqsl to upload qsos to LoTW
-func uploadQSOsToLoTW(qsos []qso.QSO, forceBulk bool) error {
+func uploadQSOsToLoTW(qsos []qso.QSO, force bool) error {
 	// only bulk so make sure there's a reasonable batch
-	if len(qsos) > 16 || (forceBulk && len(qsos) > 0) {
+	if len(qsos) > 16 || (force && len(qsos) > 0) {
 
 		// form working file name
 		fname := filepath.Join(config.WorkingDirectory, "LoTW-"+time.Now().UTC().Format("2006-Jan-02_15-04-05")+".adif")
