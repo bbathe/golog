@@ -20,6 +20,15 @@ func SourceFiles() error {
 
 	// process all sourcefiles
 	for i, wf := range config.SourceFiles {
+		// test if file exists
+		_, err := os.Stat(wf.Location)
+		if err != nil {
+			if os.IsNotExist(err) {
+				// nothing to do
+				continue
+			}
+		}
+
 		// open file to get adif records added since last execution
 		f, err := os.Open(wf.Location)
 		if err != nil {
