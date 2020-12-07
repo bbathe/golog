@@ -4,6 +4,8 @@ import (
 	"log"
 	"sort"
 
+	"github.com/bbathe/golog/config"
+
 	"github.com/bbathe/golog/models/qso"
 	"github.com/bbathe/golog/models/spot"
 	"github.com/lxn/walk"
@@ -121,7 +123,9 @@ func (m *DXClusterModel) ResetRows() {
 		return
 	}
 
-	flashWindow(mainWin, 3)
+	if config.ClusterServices.FlashWindowOnNewSpots {
+		flashWindow(mainWin, 3)
+	}
 }
 
 // dxClusterTableView returns the DX Cluster TableView to be included in the apps MainWindow

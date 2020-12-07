@@ -173,7 +173,8 @@ func (h *hamalert) Validate() error {
 }
 
 type clusterservices struct {
-	HamAlert hamalert
+	FlashWindowOnNewSpots bool
+	HamAlert              hamalert
 }
 
 // Configuration is the application configuration that is serialized/deserialized to file

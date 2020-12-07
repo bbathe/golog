@@ -769,6 +769,7 @@ func tabConfigLogbookServices() declarative.TabPage {
 }
 
 func tabConfigDXClusters() declarative.TabPage {
+	var cbFlashWindowOnNewSpots *walk.CheckBox
 	var leHAHostPort *walk.LineEdit
 	var leHAUsername *walk.LineEdit
 	var leHAPassword *walk.LineEdit
@@ -777,6 +778,23 @@ func tabConfigDXClusters() declarative.TabPage {
 		Title:  "DX Clusters",
 		Layout: declarative.VBox{Alignment: declarative.AlignHNearVNear},
 		Children: []declarative.Widget{
+			declarative.Composite{
+				Layout: declarative.VBox{},
+				DataBinder: declarative.DataBinder{
+					DataSource:     &newConfig.ClusterServices,
+					ErrorPresenter: declarative.ToolTipErrorPresenter{},
+				},
+				Children: []declarative.Widget{
+					declarative.CheckBox{
+						AssignTo: &cbFlashWindowOnNewSpots,
+						Text:     "Flash window on new spots",
+						Checked:  declarative.Bind("FlashWindowOnNewSpots"),
+						OnCheckStateChanged: func() {
+							newConfig.ClusterServices.FlashWindowOnNewSpots = cbFlashWindowOnNewSpots.Checked()
+						},
+					},
+				},
+			},
 			declarative.RadioButtonGroupBox{
 				Title:  "HamAlert",
 				Layout: declarative.HBox{MarginsZero: true},
