@@ -154,12 +154,12 @@ func ReadFromFile(fname string, qsllotw, qsleqsl, qslqrz, qslclublog qso.QSLSent
 		t := scanner.Text()
 		record += t
 
-		if strings.HasSuffix(t, "<eoh>") {
+		if strings.HasSuffix(strings.ToLower(t), "<eoh>") {
 			record = ""
 			continue
 		}
 
-		if strings.HasSuffix(t, "<eor>") {
+		if strings.HasSuffix(strings.ToLower(t), "<eor>") {
 			// get qso from record
 			var qso *qso.QSO
 			qso, err = QSOFromADIFRecord(record)
