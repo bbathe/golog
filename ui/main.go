@@ -34,7 +34,7 @@ func init() {
 	var err error
 
 	// load app icon
-	appIcon, err = walk.Resources.Icon("3")
+	appIcon, err = walk.Resources.Icon("2")
 	if err != nil {
 		log.Fatalf("%+v", err)
 	}
