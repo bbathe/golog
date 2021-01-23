@@ -267,6 +267,14 @@ func WriteToFile(qsos []qso.QSO, fname string) error {
 
 	w := bufio.NewWriter(f)
 
+	// minimal header
+	_, err = w.WriteString("<adif_ver:4>1.00<eoh>\n")
+	if err != nil {
+		log.Printf("%+v", err)
+		return err
+	}
+
+	// adif records
 	for _, qso := range qsos {
 		// qso to adif record
 		s, err := QSOToADIFRecord(qso)
