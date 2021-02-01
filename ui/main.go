@@ -429,9 +429,8 @@ func GoLogWindow() error {
 						OnClicked: func() {
 							n := time.Now().UTC()
 							*selectedQSO = qso.QSO{
-								StationCallsign: config.Station.Callsign,
-								Date:            n.Format("2006-01-02"),
-								Time:            n.Format("15:04"),
+								Date: n.Format("2006-01-02"),
+								Time: n.Format("15:04"),
 							}
 
 							// refresh
@@ -453,6 +452,9 @@ func GoLogWindow() error {
 							Width: 50,
 						},
 						OnClicked: func() {
+							// log under current station callsign
+							selectedQSO.StationCallsign = config.Station.Callsign
+
 							err := selectedQSO.Add()
 							if err != nil {
 								MsgError(mainWin, err)
@@ -460,11 +462,8 @@ func GoLogWindow() error {
 								return
 							}
 
-							*selectedQSO = qso.QSO{
-								StationCallsign: config.Station.Callsign,
-							}
-
 							// refresh
+							*selectedQSO = qso.QSO{}
 							err = bndSelectedQSO.Reset()
 							if err != nil {
 								MsgError(mainWin, err)
@@ -492,11 +491,8 @@ func GoLogWindow() error {
 								return
 							}
 
-							*selectedQSO = qso.QSO{
-								StationCallsign: config.Station.Callsign,
-							}
-
 							// refresh
+							*selectedQSO = qso.QSO{}
 							err = bndSelectedQSO.Reset()
 							if err != nil {
 								MsgError(mainWin, err)
@@ -524,11 +520,8 @@ func GoLogWindow() error {
 								return
 							}
 
-							*selectedQSO = qso.QSO{
-								StationCallsign: config.Station.Callsign,
-							}
-
 							// refresh
+							*selectedQSO = qso.QSO{}
 							err = bndSelectedQSO.Reset()
 							if err != nil {
 								MsgError(mainWin, err)
@@ -585,11 +578,8 @@ func GoLogWindow() error {
 							Width: 50,
 						},
 						OnClicked: func() {
-							*selectedQSO = qso.QSO{
-								StationCallsign: config.Station.Callsign,
-							}
-
 							// refresh
+							*selectedQSO = qso.QSO{}
 							err := bndSelectedQSO.Reset()
 							if err != nil {
 								MsgError(mainWin, err)
