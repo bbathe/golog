@@ -230,7 +230,7 @@ func QSOToADIFRecord(qso qso.QSO) (string, error) {
 	}
 
 	var submode string
-	mode, s := config.LookupModeSubmode(qso.Mode)
+	mode, s := config.LookupModeSubmode(qso.Band, qso.Mode)
 	if s != "" {
 		submode = fmt.Sprintf("<submode:%d>%s", len(s), s)
 	}

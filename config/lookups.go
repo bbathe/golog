@@ -67,7 +67,18 @@ var (
 )
 
 // LookupModeSubmode returns the mode & submode based on the mode name mode
-func LookupModeSubmode(mode string) (string, string) {
+func LookupModeSubmode(band, mode string) (string, string) {
+	// special handling for SSB mode
+	if mode == "SSB" {
+		// LSB on the 40 and lower bands
+		// USB on the 20 and higher bands
+		_, f := LookupFrequency(band)
+		if f > 0 && f <= 7500 {
+			return mode, "LSB"
+		}
+		return mode, "USB"
+	}
+
 	// try to match on submode first
 	for _, m := range Modes {
 		if m.Submode == mode {
@@ -95,7 +106,7 @@ func LookupMode(mode, submode string) string {
 	return mode
 }
 
-// LookupBand returns the band name for teh frequency passed
+// LookupBand returns the band name for the frequency passed
 func LookupBand(frequency int) string {
 	for _, b := range Bands {
 		if b.FreqHigh >= frequency && b.FreqLow <= frequency {
@@ -105,6 +116,18 @@ func LookupBand(frequency int) string {
 
 	// no match
 	return ""
+}
+
+// LookupFrequency returns the low and high ends of the frequency for the band name passed
+func LookupFrequency(band string) (int, int) {
+	for _, b := range Bands {
+		if b.Band == band {
+			return b.FreqLow, b.FreqHigh
+		}
+	}
+
+	// no match
+	return 0, 0
 }
 
 // ListBandNames returns a list of the bands for displaying to the user
