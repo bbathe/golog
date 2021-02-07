@@ -70,10 +70,9 @@ var (
 func LookupModeSubmode(band, mode string) (string, string) {
 	// special handling for SSB mode
 	if mode == "SSB" {
-		// LSB on the 40 and lower bands
-		// USB on the 20 and higher bands
-		_, f := LookupFrequency(band)
-		if f > 0 && f <= 7500 {
+		// LSB below 10 MHz, USB above
+		_, f := LookupFrequencyRange(band)
+		if f > 0 && f < 10000 {
 			return mode, "LSB"
 		}
 		return mode, "USB"
@@ -118,8 +117,8 @@ func LookupBand(frequency int) string {
 	return ""
 }
 
-// LookupFrequency returns the low and high ends of the frequency for the band name passed
-func LookupFrequency(band string) (int, int) {
+// LookupFrequency returns the low and high ends of the frequency range for the band name passed
+func LookupFrequencyRange(band string) (int, int) {
 	for _, b := range Bands {
 		if b.Band == band {
 			return b.FreqLow, b.FreqHigh
