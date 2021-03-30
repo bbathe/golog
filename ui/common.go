@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/url"
 	"os/exec"
+	"strings"
 	"unsafe"
 
 	"github.com/lxn/walk"
@@ -88,7 +89,7 @@ func drawCellStyles(tv *walk.TableView, style *walk.CellStyle, sb walk.SorterBas
 func launchQRZPage(call string) error {
 	u := "https://www.qrz.com"
 	if call != "" {
-		u += "/db/" + url.QueryEscape(call)
+		u += "/db/" + strings.Replace(call, "%", "", -1)
 	}
 
 	err := exec.Command(runDll32, "url.dll,FileProtocolHandler", u).Start()
