@@ -3,6 +3,7 @@ module github.com/bbathe/golog
 go 1.15
 
 require (
+	github.com/akavel/rsrc v0.10.2 // indirect
 	github.com/jmoiron/sqlx v1.2.0
 	github.com/lxn/walk v0.0.0-20200910155722-93a51284d89f
 	github.com/lxn/win v0.0.0-20191128105842-2da648fda5b4

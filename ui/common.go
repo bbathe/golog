@@ -3,8 +3,8 @@ package ui
 import (
 	"fmt"
 	"log"
+	"net/url"
 	"os/exec"
-	"strings"
 	"unsafe"
 
 	"github.com/lxn/walk"
@@ -88,7 +88,7 @@ func drawCellStyles(tv *walk.TableView, style *walk.CellStyle, sb walk.SorterBas
 func launchQRZPage(call string) error {
 	u := "https://www.qrz.com"
 	if call != "" {
-		u += "/db/" + strings.Replace(call, "%", "", -1)
+		u += "/db/" + url.QueryEscape(call)
 	}
 
 	err := exec.Command(runDll32, "url.dll,FileProtocolHandler", u).Start()
@@ -107,7 +107,7 @@ func launchPSKreporter(call string) error {
 		log.Printf("%+v", err)
 		return err
 	}
-	u := fmt.Sprintf("https://www.pskreporter.de/?s_type=rcvdby&call=%s&search=Search", call)
+	u := fmt.Sprintf("https://www.pskreporter.de/table?call=%s", url.QueryEscape(call))
 
 	err := exec.Command(runDll32, "url.dll,FileProtocolHandler", u).Start()
 	if err != nil {
