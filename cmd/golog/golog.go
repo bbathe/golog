@@ -4,10 +4,12 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"math/rand"
 	"os"
 	"path"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/bbathe/golog/config"
 	"github.com/bbathe/golog/db"
@@ -76,6 +78,9 @@ func main() {
 		ui.MsgError(nil, err)
 		log.Fatalf("%+v", err)
 	}
+
+	// seed random pool
+	rand.Seed(time.Now().UnixNano())
 
 	// open our databases
 	err = db.OpenQSODb()

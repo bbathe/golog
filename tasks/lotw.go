@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"log"
+	"math/rand"
 	"os/exec"
 	"path/filepath"
 	"sync"
@@ -60,9 +61,10 @@ func QSLLotwFinal() {
 
 // uploadQSOsToLoTW leverages tqsl to upload qsos to LoTW
 func uploadQSOsToLoTW(qsos []qso.QSO, force bool) error {
-	// only bulk so make sure there's a reasonable batch
-	if len(qsos) > 16 || (force && len(qsos) > 0) {
+	// batch somewhere between 11 - 17 in size, unless forced
+	r := rand.Intn(17-11) + 11
 
+	if len(qsos) >= r || (force && len(qsos) > 0) {
 		// form working file name
 		fname := filepath.Join(config.WorkingDirectory, "LoTW-"+time.Now().UTC().Format("2006-Jan-02_15-04-05")+".adif")
 
