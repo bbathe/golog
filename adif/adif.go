@@ -22,7 +22,8 @@ var (
 	reMode            = regexp.MustCompile(`(?i)^mode:(\d+)>(.+)`)
 	reSubmode         = regexp.MustCompile(`(?i)^submode:(\d+)>(.+)`)
 	reDate            = regexp.MustCompile(`(?i)^qso_date:(\d+)>(.+)`)
-	reTime            = regexp.MustCompile(`(?i)^time_on:(\d+)>(.+)`)
+	reTimeOn          = regexp.MustCompile(`(?i)^time_on:(\d+)>(.+)`)
+	reTimeOff         = regexp.MustCompile(`(?i)^time_off:(\d+)>(.+)`)
 	reRSTRcvd         = regexp.MustCompile(`(?i)^rst_rcvd:(\d+)>(.+)`)
 	reRSTSent         = regexp.MustCompile(`(?i)^rst_sent:(\d+)>(.+)`)
 )
@@ -47,9 +48,32 @@ func extractValue(s string, r *regexp.Regexp) *string {
 	return nil
 }
 
+func formatTime(ts string) (string, error) {
+	var err error
+	var t time.Time
+
+	if len(ts) > 4 {
+		t, err = time.Parse("150405", ts)
+		if err != nil {
+			log.Printf("%+v", err)
+			return "", err
+		}
+	} else {
+		t, err = time.Parse("1504", ts)
+		if err != nil {
+			log.Printf("%+v", err)
+			return "", err
+		}
+	}
+
+	// we don't keep seconds
+	return t.Format("15:04"), nil
+}
+
 func QSOFromADIFRecord(record string) (*qso.QSO, error) {
 	var err error
 	var qso qso.QSO
+	var timeOn, timeOff string
 	submode := ""
 
 	// look at every field, picking out what we want
@@ -91,26 +115,24 @@ func QSOFromADIFRecord(record string) (*qso.QSO, error) {
 			qso.Date = t.Format("2006-01-02")
 			continue
 		}
-		m = extractValue(field, reTime)
+		m = extractValue(field, reTimeOn)
 		if m != nil {
-			var t time.Time
-
-			if len(*m) > 4 {
-				t, err = time.Parse("150405", *m)
-				if err != nil {
-					log.Printf("%+v", err)
-					continue
-				}
-			} else {
-				t, err = time.Parse("1504", *m)
-				if err != nil {
-					log.Printf("%+v", err)
-					continue
-				}
+			timeOn, err = formatTime(*m)
+			if err != nil {
+				log.Printf("%+v", err)
+				continue
 			}
 
-			// we don't keep seconds
-			qso.Time = t.Format("15:04")
+			continue
+		}
+		m = extractValue(field, reTimeOff)
+		if m != nil {
+			timeOff, err = formatTime(*m)
+			if err != nil {
+				log.Printf("%+v", err)
+				continue
+			}
+
 			continue
 		}
 		m = extractValue(field, reRSTRcvd)
@@ -127,6 +149,15 @@ func QSOFromADIFRecord(record string) (*qso.QSO, error) {
 
 	// fixup mode/submode
 	qso.Mode = config.LookupMode(qso.Mode, submode)
+
+	// figure out qso time
+	// jtdx will sometimes generate zero time_on
+	qso.Time = timeOn
+	if qso.Mode == "FT8" || qso.Mode == "FT4" {
+		if timeOn == "00:00" && timeOff != "" {
+			qso.Time = timeOff
+		}
+	}
 
 	return &qso, nil
 }
