@@ -70,9 +70,9 @@ var (
 func LookupModeSubmode(band, mode string) (string, string) {
 	// special handling for SSB mode
 	if mode == "SSB" {
-		// LSB below 10 MHz, USB above
+		// LSB below 10 MHz (except for 60 meter), USB above
 		_, f := LookupFrequencyRange(band)
-		if f > 0 && f < 10000 {
+		if f > 0 && f < 10000 && band != "60m" {
 			return mode, "LSB"
 		}
 		return mode, "USB"
