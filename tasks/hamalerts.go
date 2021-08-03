@@ -177,6 +177,8 @@ func gatherHamAlerts() {
 			return
 		}
 
+		//log.Printf("%+v", match)
+
 		err = spot.Add(match[4], match[2], match[1], match[3])
 		if err != nil {
 			log.Printf("%+v", err)
