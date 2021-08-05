@@ -3,6 +3,7 @@ package ui
 import (
 	"log"
 	"sort"
+	"time"
 
 	"github.com/bbathe/golog/config"
 
@@ -225,6 +226,28 @@ func dxClusterTableView() declarative.TableView {
 			{Title: ""},
 		},
 		Model: dxclustermodel,
+		OnItemActivated: func() {
+			// start new QSO with call
+			idx := tv.CurrentIndex()
+			if idx >= 0 {
+				// copy call to new qso
+				n := time.Now().UTC()
+				*selectedQSO = qso.QSO{
+					Band: dxclustermodel.items[idx].Band,
+					Call: dxclustermodel.items[idx].Call,
+					Date: n.Format("2006-01-02"),
+					Time: n.Format("15:04"),
+				}
+
+				// refresh
+				err := bndSelectedQSO.Reset()
+				if err != nil {
+					MsgError(mainWin, err)
+					log.Printf("%+v", err)
+					return
+				}
+			}
+		},
 		StyleCell: func(style *walk.CellStyle) {
 			drawCellStyles(tv, style, dxclustermodel.SorterBase)
 		},
