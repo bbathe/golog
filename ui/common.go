@@ -108,7 +108,7 @@ func launchPSKreporter(call string) error {
 		log.Printf("%+v", err)
 		return err
 	}
-	u := fmt.Sprintf("https://www.pskreporter.de/table?call=%s", url.QueryEscape(call))
+	u := fmt.Sprintf("https://www.pskreporter.de/?s_type=rcvdby&call=%s&search=Search", url.QueryEscape(call))
 
 	err := exec.Command(runDll32, "url.dll,FileProtocolHandler", u).Start()
 	if err != nil {
