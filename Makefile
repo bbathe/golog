@@ -7,7 +7,9 @@ default: fmt codetest
 get:
 	GOOS=windows GOARCH=amd64 go get -v ./...
 	go get github.com/akavel/rsrc
-	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(shell go env GOPATH)/bin v1.31.0
+	@if [ ! -x $(shell go env GOPATH)/bin/golangci-lint ] ; then \
+		curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(shell go env GOPATH)/bin v1.31.0 ;\
+	fi
 
 codetest: lint vet
 
