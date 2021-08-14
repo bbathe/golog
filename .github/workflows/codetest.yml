@@ -1,9 +1,12 @@
-name: Tests
-on: [push]
+name: Codetest
+on:
+  push:
+    branches:    
+      - '**'
 jobs:
 
   codetest_build:
-    name: Codetest & Build
+    name: Codetest
     runs-on: ubuntu-latest
     steps:
 
