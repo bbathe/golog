@@ -5,6 +5,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/bbathe/golog/adif"
 	"github.com/bbathe/golog/config"
 
 	"github.com/bbathe/golog/models/qso"
@@ -213,6 +214,33 @@ func (m *QSOModel) ClearSearch() {
 	m.searchCriteria = nil
 
 	m.ResetRows()
+}
+
+// Export generates an adif with the items in the model
+func (m *QSOModel) Export() {
+	// ask where to export to
+	fname, err := SaveFilePicker(mainWin, "Select file to export QSOs", "ADIF Files (*.adi;*.adif)|*.adi;*.adif|All Files (*.*)|*.*")
+	if err != nil {
+		MsgError(nil, err)
+		log.Printf("%+v", err)
+		return
+	}
+
+	if fname != nil {
+		// get qsos ready for WriteToFile
+		qs := make([]qso.QSO, 0, len(m.items))
+		for _, item := range m.items {
+			qs = append(qs, *item)
+		}
+
+		// write to file
+		err := adif.WriteToFile(qs, *fname)
+		if err != nil {
+			log.Printf("%+v", err)
+			MsgError(nil, err)
+			return
+		}
+	}
 }
 
 // qsoTableView returns the QSO TableView to be included in the apps MainWindow

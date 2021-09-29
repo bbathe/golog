@@ -192,6 +192,12 @@ func GoLogWindow() error {
 					declarative.Action{
 						Text: "&Export...",
 						OnTriggered: func() {
+							qsomodel.Export()
+						},
+					},
+					declarative.Action{
+						Text: "&Export All...",
+						OnTriggered: func() {
 							exportADIF(mainWin)
 						},
 					},
