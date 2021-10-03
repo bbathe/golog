@@ -16,6 +16,8 @@ import (
 
 var (
 	quitHamAlert chan bool
+
+	errEmptyMsg = fmt.Errorf("empty message from HamAlert server")
 )
 
 // our own type so we can make this "quitable"
@@ -34,11 +36,16 @@ func (r *hamAlertReader) ReadString(delim byte) (*string, error) {
 		case <-quitHamAlert:
 			return nil, nil
 		default:
+			if err == io.EOF {
+				var empty string
+				return &empty, nil
+			}
 			log.Printf("%+v", err)
+			return nil, err
 		}
 	}
 
-	return &msg, err
+	return &msg, nil
 }
 
 // StartHamAlerts starts the collection of spots from HamAlert
@@ -53,11 +60,16 @@ func StartHamAlerts() {
 				return
 			default:
 				setTaskStatus(TaskHamAlert, TaskStatusOK)
-				gatherHamAlerts()
+				err := gatherHamAlerts()
+				if err != nil {
+					log.Printf("%+v", err)
+				}
 				setTaskStatus(TaskHamAlert, TaskStatusFailed)
 
-				// some connection problem, pause before retry
-				time.Sleep(time.Duration(60) * time.Second)
+				if err != nil {
+					// some connection problem, pause before retry
+					time.Sleep(30 * time.Second)
+				}
 			}
 		}
 	}()
@@ -70,16 +82,17 @@ func StopHamAlerts() {
 
 // gatherHamAlerts does the real work of inetgrating with HamAlert to collect spot
 // only returns if we couldn't connect to HamAlert or connection is closed
-func gatherHamAlerts() {
+func gatherHamAlerts() error {
 	var err error
 	var msg *string
+	badMsg := "unexpected message from HamAlert server %s"
 
 	// connect
 	var conHamAlert net.Conn
 	conHamAlert, err = net.Dial("tcp", config.ClusterServices.HamAlert.HostPort)
 	if err != nil {
 		log.Printf("%+v", err)
-		return
+		return err
 	}
 	defer conHamAlert.Close()
 
@@ -87,102 +100,104 @@ func gatherHamAlerts() {
 
 	// login
 	msg, err = r.ReadString('\n')
-	if msg == nil {
-		return
-	}
 	if err != nil {
 		log.Printf("%+v", err)
-		return
+		return err
+	}
+	if msg == nil {
+		return errEmptyMsg
 	}
 	if !strings.Contains(*msg, "HamAlert") {
-		err := fmt.Errorf("doesn't appear to be HamAlert server %s", *msg)
+		err := fmt.Errorf(badMsg, *msg)
 		log.Printf("%+v", err)
-		return
+		return err
 	}
 
 	// hamalert username
 	msg, err = r.ReadString(':')
-	if msg == nil {
-		return
-	}
 	if err != nil {
 		log.Printf("%+v", err)
-		return
+		return err
 	}
-	if strings.HasSuffix(*msg, "login:") {
-		fmt.Fprintf(conHamAlert, config.ClusterServices.HamAlert.Username+"\n")
-	} else {
+	if msg == nil {
+		return errEmptyMsg
+	}
+	if !strings.HasSuffix(*msg, "login:") {
+		err := fmt.Errorf(badMsg, *msg)
 		log.Printf("%+v", err)
-		return
+		return err
 	}
+	fmt.Fprintf(conHamAlert, config.ClusterServices.HamAlert.Username+"\n")
 
 	// hamalert password
 	msg, err = r.ReadString(':')
-	if msg == nil {
-		return
-	}
 	if err != nil {
 		log.Printf("%+v", err)
-		return
+		return err
 	}
-	if strings.HasSuffix(*msg, "password:") {
-		fmt.Fprintf(conHamAlert, config.ClusterServices.HamAlert.Password+"\n")
-	} else {
+	if msg == nil {
+		return errEmptyMsg
+	}
+	if !strings.HasSuffix(*msg, "password:") {
+		err := fmt.Errorf(badMsg, *msg)
 		log.Printf("%+v", err)
-		return
+		return err
 	}
+	fmt.Fprintf(conHamAlert, config.ClusterServices.HamAlert.Password+"\n")
 
 	// verify greeting
 	msg, err = r.ReadString('>')
-	if msg == nil {
-		return
-	}
 	if err != nil {
 		log.Printf("%+v", err)
-		return
+		return err
+	}
+	if msg == nil {
+		return errEmptyMsg
 	}
 	if !strings.Contains(*msg, fmt.Sprintf("%s de HamAlert", strings.ToUpper(config.ClusterServices.HamAlert.Username))) {
 		err := fmt.Errorf("authentication failure %s", *msg)
 		log.Printf("%+v", err)
-		return
+		return err
 	}
 
 	// throw out next line, part of greeting
 	_, err = r.ReadString('\n')
 	if err != nil {
 		log.Printf("%+v", err)
-		return
+		return err
 	}
 
 	// prime with a little history
 	fmt.Fprintf(conHamAlert, "show/dx 5\n")
 
 	// wait for new lines to show up and add spot entries for them
-	re := regexp.MustCompile(`^[^:]+:\s+([^\s]+)\s+([^\s]+)\s+(.*)([0-9]{4})Z`)
+	re := regexp.MustCompile(`^DX de\s+([^:]+):\s+([^\s]+)\s+([^\s]+)\s+(.*)([0-9]{4})Z`)
 	for {
 		msg, err = r.ReadString('\n')
-		if msg == nil {
-			return
-		}
 		if err != nil {
 			log.Printf("%+v", err)
-			return
+			return err
 		}
+		if msg == nil {
+			return nil
+		}
+
+		//log.Printf("%s", *msg)
 
 		// parse for elements
 		match := re.FindStringSubmatch(*msg)
 		if match == nil {
 			err := fmt.Errorf("could not match on message '%s'", *msg)
 			log.Printf("%+v", err)
-			return
+			return err
 		}
 
 		//log.Printf("%+v", match)
 
-		err = spot.Add(match[4], match[2], match[1], match[3])
+		err = spot.Add(match[5], match[3], match[2], match[4], match[1])
 		if err != nil {
 			log.Printf("%+v", err)
-			return
+			return err
 		}
 	}
 }

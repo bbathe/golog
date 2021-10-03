@@ -77,7 +77,7 @@ func Start() {
 		fn := fn
 
 		// create recurring task
-		q := util.ScheduleRecurring(fn, time.Duration(60)*time.Second)
+		q := util.ScheduleRecurring(fn, 60*time.Second)
 
 		// and keep quit channel
 		quitChannels = append(quitChannels, q)
@@ -89,7 +89,7 @@ func Start() {
 				return
 			default:
 				// pause between starts
-				time.Sleep(time.Duration(1) * time.Second)
+				time.Sleep(1 * time.Second)
 			}
 		}
 	}

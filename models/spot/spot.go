@@ -19,6 +19,7 @@ type Spot struct {
 	Band      string `db:"band"`
 	Frequency string `db:"frequency"`
 	Comments  string `db:"comments"`
+	Spotter   string `db:"spotter"`
 }
 
 const (
@@ -28,15 +29,17 @@ const (
 			call,
 			band,
 			frequency,
-			comments
+			comments,
+			spotter
 		) values (
 			:timestamp,
 			:call,
 			:band,
 			:frequency,
-			:comments
+			:comments,
+			:spotter
 		)
-		on conflict(timestamp, call, band) do nothing
+		on conflict(timestamp, call, band, spotter) do nothing
 	`
 
 	stmtSpotSelectAllAfter = `
@@ -46,7 +49,8 @@ const (
 			call,
 			band,
 			frequency,
-			comments
+			comments,
+			spotter
 		from
 			spots
 		where
@@ -80,7 +84,7 @@ func publishSpotChange() {
 }
 
 // Add inserts a single spot into the spot database
-func Add(timestamp, call, frequency, comments string) error {
+func Add(timestamp, call, frequency, comments, spotter string) error {
 	var err error
 
 	if db.SpotDb == nil {
@@ -110,6 +114,7 @@ func Add(timestamp, call, frequency, comments string) error {
 		Band:      config.LookupBand(int(freq)),
 		Frequency: util.FormatFrequency(frequency),
 		Comments:  strings.TrimSpace(comments),
+		Spotter:   strings.ToUpper(spotter),
 	}
 
 	spotInsert, err := db.SpotDb.PrepareNamed(stmtSpotInsert)

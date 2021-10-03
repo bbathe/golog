@@ -37,7 +37,7 @@ func Cleanup() {
 
 	// only keep archive files for 3 days
 	now := time.Now()
-	then := now.Add(-(time.Duration(3*24) * time.Hour))
+	then := now.Add(-3 * 24 * time.Hour)
 	for _, file := range files {
 		if file.ModTime().Before(then) {
 			err = os.Remove(filepath.Join(config.WorkingDirectory, file.Name()))

@@ -67,7 +67,7 @@ func uploadQSOsToQRZ(qsos []qso.QSO) error {
 	for _, q := range qsos {
 		if i > 0 {
 			// pause between uploads
-			time.Sleep(time.Duration(1) * time.Second)
+			time.Sleep(1 * time.Second)
 		}
 		i++
 

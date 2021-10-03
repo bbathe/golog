@@ -67,6 +67,9 @@ func (m *DXClusterModel) Value(row, col int) interface{} {
 		return item.Frequency
 
 	case 5:
+		return item.Spotter
+
+	case 6:
 		return item.Comments
 	}
 
@@ -85,7 +88,7 @@ func (m *DXClusterModel) Sort(col int, order walk.SortOrder) error {
 	return m.SorterBase.Sort(m.sortColumn, m.sortOrder)
 }
 
-// ResetRows loads QSOs from the database
+// ResetRows loads Spots from the database
 func (m *DXClusterModel) ResetRows() {
 	var r []spot.Spot
 	var err error
@@ -222,7 +225,8 @@ func dxClusterTableView() declarative.TableView {
 			{Title: "Callsign"},
 			{Title: "Band"},
 			{Title: "Frequency", Alignment: declarative.AlignFar},
-			{Title: "Comments", Width: 150},
+			{Title: "Spotter"},
+			{Title: "Comments", Width: 250},
 			{Title: ""},
 		},
 		Model: dxclustermodel,

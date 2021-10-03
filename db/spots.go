@@ -69,7 +69,8 @@ func NewSpotDb() error {
 			call text null,
 			band text null,
 			frequency text null,
-			comments text null
+			comments text null,
+			spotter text null
 		)
 	`)
 	if err != nil {
@@ -79,7 +80,7 @@ func NewSpotDb() error {
 
 	// index for what uniquely defines a spot
 	_, err = SpotDb.Exec(`
-		create unique index unique_spots on spots(timestamp, call, band)
+		create unique index unique_spots on spots(timestamp, call, band, spotter)
 	`)
 	if err != nil {
 		log.Printf("%+v", err)
