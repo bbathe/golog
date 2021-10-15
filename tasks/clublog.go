@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/bbathe/golog/adif"
+	"github.com/bbathe/golog/util"
 
 	"github.com/bbathe/golog/config"
 	"github.com/bbathe/golog/models/qso"
@@ -65,22 +66,22 @@ func QSLClublogFinal() {
 
 // uploadQSOsToClublog uploads qsos to Club Log
 func uploadQSOsToClublog(qsos []qso.QSO) error {
+	// form working file name
+	fname := filepath.Join(config.WorkingDirectory, "Clublog-"+time.Now().UTC().Format("2006-Jan-02_15-04-05")+".adif")
+
+	// write qsos as adif to file
+	err := adif.WriteToFile(qsos, fname)
+	if err != nil {
+		log.Printf("%+v", err)
+		return err
+	}
+
 	reqBody := &bytes.Buffer{}
 	w := multipart.NewWriter(reqBody)
 	var url string
 
 	// handle with bulk call or realtime call?
 	if len(qsos) > 1 {
-		// form working file name
-		fname := filepath.Join(config.WorkingDirectory, "Clublog-"+time.Now().UTC().Format("2006-Jan-02_15-04-05")+".adif")
-
-		// write qsos as adif to file
-		err := adif.WriteToFile(qsos, fname)
-		if err != nil {
-			log.Printf("%+v", err)
-			return err
-		}
-
 		// open file with qso data
 		f, err := os.Open(fname)
 		if err != nil {
@@ -122,7 +123,7 @@ func uploadQSOsToClublog(qsos []qso.QSO) error {
 	}
 
 	// set the other form fields required
-	err := w.WriteField("email", config.LogbookServices.ClubLog.Email)
+	err = w.WriteField("email", config.LogbookServices.ClubLog.Email)
 	if err != nil {
 		log.Printf("%+v", err)
 		return err
@@ -187,6 +188,13 @@ func uploadQSOsToClublog(qsos []qso.QSO) error {
 
 	// set as sent in db
 	err = qso.UpdateQSLsToSent(qsos, qso.QSLClublog)
+	if err != nil {
+		log.Printf("%+v", err)
+		return err
+	}
+
+	// only keep the last 5 files of ours in the working directory
+	err = util.DeleteHistoricalFiles(5, config.WorkingDirectory, "Clublog-", ".adif")
 	if err != nil {
 		log.Printf("%+v", err)
 		return err

@@ -126,10 +126,9 @@ func Shutdown() {
 	var wg sync.WaitGroup
 
 	// final tasks before shutting down
-	// cleanup, backup & send all remaining QSOs to logbook services
+	// backup qsos & send all remaining QSOs to logbook services
 	tasks := []func(){
-		Cleanup,
-		Backup,
+		BackupQSOs,
 	}
 
 	// add services that are configured

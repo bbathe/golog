@@ -17,6 +17,7 @@ import (
 	"github.com/bbathe/golog/adif"
 	"github.com/bbathe/golog/config"
 	"github.com/bbathe/golog/models/qso"
+	"github.com/bbathe/golog/util"
 )
 
 var muxEqslUpload sync.Mutex
@@ -162,6 +163,13 @@ func uploadQSOsToEqsl(qsos []qso.QSO) error {
 
 	// set as sent in db
 	err = qso.UpdateQSLsToSent(qsos, qso.QSLEqsl)
+	if err != nil {
+		log.Printf("%+v", err)
+		return err
+	}
+
+	// only keep the last 5 files of ours in the working directory
+	err = util.DeleteHistoricalFiles(5, config.WorkingDirectory, "eQSL-", ".adif")
 	if err != nil {
 		log.Printf("%+v", err)
 		return err

@@ -6,12 +6,14 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/bbathe/golog/adif"
+	"github.com/bbathe/golog/util"
 
 	"github.com/bbathe/golog/config"
 	"github.com/bbathe/golog/models/qso"
@@ -63,6 +65,16 @@ func QSLQrzFinal() {
 
 // uploadQSOsToQRZ uploads qsos to QRZ.com
 func uploadQSOsToQRZ(qsos []qso.QSO) error {
+	// save all the qsos we are uploading to file
+	fname := filepath.Join(config.WorkingDirectory, "QRZ-"+time.Now().UTC().Format("2006-Jan-02_15-04-05")+".adif")
+
+	// write qsos as adif to file
+	err := adif.WriteToFile(qsos, fname)
+	if err != nil {
+		log.Printf("%+v", err)
+		return err
+	}
+
 	i := 0
 	for _, q := range qsos {
 		if i > 0 {
@@ -143,5 +155,13 @@ func uploadQSOsToQRZ(qsos []qso.QSO) error {
 			return err
 		}
 	}
+
+	// only keep the last 5 files of ours in the working directory
+	err = util.DeleteHistoricalFiles(5, config.WorkingDirectory, "QRZ-", ".adif")
+	if err != nil {
+		log.Printf("%+v", err)
+		return err
+	}
+
 	return nil
 }

@@ -14,6 +14,7 @@ import (
 	"github.com/bbathe/golog/adif"
 	"github.com/bbathe/golog/config"
 	"github.com/bbathe/golog/models/qso"
+	"github.com/bbathe/golog/util"
 )
 
 var muxLotwUpload sync.Mutex
@@ -114,6 +115,13 @@ func uploadQSOsToLoTW(qsos []qso.QSO, force bool) error {
 
 	// set as sent in db
 	err = qso.UpdateQSLsToSent(qsos, qso.QSLLotw)
+	if err != nil {
+		log.Printf("%+v", err)
+		return err
+	}
+
+	// only keep the last 5 files of ours in the working directory
+	err = util.DeleteHistoricalFiles(5, config.WorkingDirectory, "LoTW-", ".adif")
 	if err != nil {
 		log.Printf("%+v", err)
 		return err
