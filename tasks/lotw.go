@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"log"
+	"math"
 	"math/rand"
 	"os/exec"
 	"path/filepath"
@@ -17,7 +18,7 @@ import (
 
 var muxLotwUpload sync.Mutex
 
-// QSLLotw uploads all QSOs to LoTW that are older than config.QSLDelay minutes old
+// QSLLotw uploads QSOs to LoTW
 func QSLLotw() error {
 	muxLotwUpload.Lock()
 	defer muxLotwUpload.Unlock()
@@ -29,10 +30,24 @@ func QSLLotw() error {
 	}
 
 	if len(qsos) > 0 {
-		err = uploadQSOsToLoTW(qsos, false)
-		if err != nil {
-			log.Printf("%+v", err)
-			return err
+		// get oldest loaded time of all these qsos
+		minLoadedAt := int64(math.MaxInt64)
+		for _, qso := range qsos {
+			if minLoadedAt > qso.LoadedAt {
+				minLoadedAt = qso.LoadedAt
+			}
+		}
+
+		// pick a number between 11 & 17
+		r := rand.Intn(17-11) + 11
+
+		// if batch is greater than r size or oldest is older than 3 hours, then push to lotw
+		if len(qsos) > r || time.Now().Add(-4*time.Hour).Unix() > minLoadedAt {
+			err = uploadQSOsToLoTW(qsos, false)
+			if err != nil {
+				log.Printf("%+v", err)
+				return err
+			}
 		}
 	}
 
@@ -61,52 +76,47 @@ func QSLLotwFinal() {
 
 // uploadQSOsToLoTW leverages tqsl to upload qsos to LoTW
 func uploadQSOsToLoTW(qsos []qso.QSO, force bool) error {
-	// batch somewhere between 11 - 17 in size, unless forced
-	r := rand.Intn(17-11) + 11
+	// form working file name
+	fname := filepath.Join(config.WorkingDirectory, "LoTW-"+time.Now().UTC().Format("2006-Jan-02_15-04-05")+".adif")
 
-	if len(qsos) >= r || (force && len(qsos) > 0) {
-		// form working file name
-		fname := filepath.Join(config.WorkingDirectory, "LoTW-"+time.Now().UTC().Format("2006-Jan-02_15-04-05")+".adif")
+	// write qsos as adif to file
+	err := adif.WriteToFile(qsos, fname)
+	if err != nil {
+		log.Printf("%+v", err)
+		return err
+	}
 
-		// write qsos as adif to file
-		err := adif.WriteToFile(qsos, fname)
-		if err != nil {
-			log.Printf("%+v", err)
-			return err
-		}
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
 
-		var stdout bytes.Buffer
-		var stderr bytes.Buffer
+	// setup command execution, capturing stdout & stderr
+	// #nosec G204
+	cmd := exec.Command(
+		config.LogbookServices.TQSL.ExeLocation,
+		"--quiet",
+		"--batch",
+		"--nodate",
+		"--upload",
+		fmt.Sprintf("--location=%s", config.LogbookServices.TQSL.StationLocationName),
+		fname,
+	)
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
 
-		// setup command execution, capturing stdout & stderr
-		// #nosec G204
-		cmd := exec.Command(
-			config.LogbookServices.TQSL.ExeLocation,
-			"--quiet",
-			"--batch",
-			"--nodate",
-			"--upload",
-			fmt.Sprintf("--location=%s", config.LogbookServices.TQSL.StationLocationName),
-			fname,
-		)
-		cmd.Stdout = &stdout
-		cmd.Stderr = &stderr
+	// doit!
+	err = cmd.Run()
+	if err != nil {
+		log.Printf("error: %+v", err)
+		log.Printf("stdout: %s", stdout.String())
+		log.Printf("stderr: %s", stderr.String())
+		return err
+	}
 
-		// doit!
-		err = cmd.Run()
-		if err != nil {
-			log.Printf("error: %+v", err)
-			log.Printf("stdout: %s", stdout.String())
-			log.Printf("stderr: %s", stderr.String())
-			return err
-		}
-
-		// set as sent in db
-		err = qso.UpdateQSLsToSent(qsos, qso.QSLLotw)
-		if err != nil {
-			log.Printf("%+v", err)
-			return err
-		}
+	// set as sent in db
+	err = qso.UpdateQSLsToSent(qsos, qso.QSLLotw)
+	if err != nil {
+		log.Printf("%+v", err)
+		return err
 	}
 
 	return nil
