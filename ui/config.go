@@ -198,6 +198,7 @@ func tabConfigGeneral() declarative.TabPage {
 	var neQSOHistory *walk.NumberEdit
 	var neQSOLimit *walk.NumberEdit
 	var leWorkingDirectory *walk.LineEdit
+	var leBackupDirectory *walk.LineEdit
 
 	return declarative.TabPage{
 		Title:  "General",
@@ -357,6 +358,57 @@ func tabConfigGeneral() declarative.TabPage {
 
 									if dname != nil {
 										err = leWorkingDirectory.SetText(*dname)
+										if err != nil {
+											MsgError(configForm, err)
+											log.Printf("%+v", err)
+											return
+										}
+									}
+								},
+							},
+						},
+					},
+				},
+			},
+			declarative.Composite{
+				Layout: declarative.VBox{},
+				Children: []declarative.Widget{
+					declarative.Label{
+						Text: "Backup Directory",
+					},
+					declarative.Composite{
+						Layout: declarative.HBox{MarginsZero: true},
+						DataBinder: declarative.DataBinder{
+							DataSource:     &newConfig,
+							ErrorPresenter: declarative.ToolTipErrorPresenter{},
+						},
+						Children: []declarative.Widget{
+							declarative.LineEdit{
+								AssignTo: &leBackupDirectory,
+								Text:     declarative.Bind("BackupDirectory"),
+								ReadOnly: true,
+								OnTextChanged: func() {
+									newConfig.BackupDirectory = leBackupDirectory.Text()
+								},
+							},
+							declarative.PushButton{
+								Text:    "\u2026",
+								MaxSize: declarative.Size{Width: 30},
+								MinSize: declarative.Size{Width: 30},
+								Font: declarative.Font{
+									Family:    "MS Shell Dlg 2",
+									PointSize: 9,
+								},
+								OnClicked: func() {
+									dname, err := OpenFolderPicker(configForm, "Choose folder to store backups")
+									if err != nil {
+										MsgError(configForm, err)
+										log.Printf("%+v", err)
+										return
+									}
+
+									if dname != nil {
+										err = leBackupDirectory.SetText(*dname)
 										if err != nil {
 											MsgError(configForm, err)
 											log.Printf("%+v", err)

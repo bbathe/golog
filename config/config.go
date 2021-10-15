@@ -187,6 +187,7 @@ type Configuration struct {
 	LogbookServices  logbookservices
 	ClusterServices  clusterservices
 	WorkingDirectory string
+	BackupDirectory  string
 }
 
 func (c *Configuration) AddSourceFile(fname string) {
@@ -231,6 +232,11 @@ func (c *Configuration) Validate() error {
 		log.Printf("%+v", err)
 		return err
 	}
+	if c.BackupDirectory == "" {
+		err := fmt.Errorf(msgMissingField, "Backup Directory")
+		log.Printf("%+v", err)
+		return err
+	}
 
 	return nil
 }
@@ -249,6 +255,7 @@ var (
 	LogbookServices  logbookservices
 	ClusterServices  clusterservices
 	WorkingDirectory string
+	BackupDirectory  string
 )
 
 // Read loads application configuration from file fname
@@ -285,6 +292,7 @@ func Read(fname string) error {
 	LogbookServices = c.LogbookServices
 	ClusterServices = c.ClusterServices
 	WorkingDirectory = c.WorkingDirectory
+	BackupDirectory = c.BackupDirectory
 
 	return nil
 }
@@ -305,6 +313,7 @@ func Write() error {
 		LogbookServices:  LogbookServices,
 		ClusterServices:  ClusterServices,
 		WorkingDirectory: WorkingDirectory,
+		BackupDirectory:  BackupDirectory,
 	}
 
 	// make sure valid before proceeding
@@ -347,6 +356,7 @@ func Copy(c *Configuration) error {
 		LogbookServices:  LogbookServices,
 		ClusterServices:  ClusterServices,
 		WorkingDirectory: WorkingDirectory,
+		BackupDirectory:  BackupDirectory,
 	}
 	err := ac.Validate()
 	if err != nil {
