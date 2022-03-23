@@ -16,21 +16,31 @@ import (
 
 var (
 	quitHamAlert chan bool
+	har          *hamAlertReader
 
 	errEmptyMsg = fmt.Errorf("empty message from HamAlert server")
+	badMsg      = "unexpected message from HamAlert server %s"
 )
 
 // our own type so we can make this "quitable"
 type hamAlertReader struct {
+	c net.Conn
 	r *bufio.Reader
 }
 
-func NewHamAlertReader(rd io.Reader) *hamAlertReader {
-	return &hamAlertReader{r: bufio.NewReader(rd)}
+func NewHamAlertReader() (*hamAlertReader, error) {
+	// connect
+	con, err := net.Dial("tcp", config.ClusterServices.HamAlert.HostPort)
+	if err != nil {
+		log.Printf("%+v", err)
+		return nil, err
+	}
+
+	return &hamAlertReader{c: con, r: bufio.NewReader(con)}, nil
 }
 
-func (r *hamAlertReader) ReadString(delim byte) (*string, error) {
-	msg, err := r.r.ReadString(delim)
+func (har *hamAlertReader) readString(delim byte) (*string, error) {
+	msg, err := har.r.ReadString(delim)
 	if err != nil {
 		select {
 		case <-quitHamAlert:
@@ -48,58 +58,8 @@ func (r *hamAlertReader) ReadString(delim byte) (*string, error) {
 	return &msg, nil
 }
 
-// StartHamAlerts starts the collection of spots from HamAlert
-func StartHamAlerts() {
-	quitHamAlert = make(chan bool)
-
-	go func() {
-		// this gives us reconnect and ability to stop/start
-		for {
-			select {
-			case <-quitHamAlert:
-				return
-			default:
-				setTaskStatus(TaskHamAlert, TaskStatusOK)
-				err := gatherHamAlerts()
-				if err != nil {
-					log.Printf("%+v", err)
-				}
-				setTaskStatus(TaskHamAlert, TaskStatusFailed)
-
-				if err != nil {
-					// some connection problem, pause before retry
-					time.Sleep(30 * time.Second)
-				}
-			}
-		}
-	}()
-}
-
-// StopHamAlerts shutdowns the collection of spots from HamAlert
-func StopHamAlerts() {
-	close(quitHamAlert)
-}
-
-// gatherHamAlerts does the real work of inetgrating with HamAlert to collect spot
-// only returns if we couldn't connect to HamAlert or connection is closed
-func gatherHamAlerts() error {
-	var err error
-	var msg *string
-	badMsg := "unexpected message from HamAlert server %s"
-
-	// connect
-	var conHamAlert net.Conn
-	conHamAlert, err = net.Dial("tcp", config.ClusterServices.HamAlert.HostPort)
-	if err != nil {
-		log.Printf("%+v", err)
-		return err
-	}
-	defer conHamAlert.Close()
-
-	r := NewHamAlertReader(conHamAlert)
-
-	// login
-	msg, err = r.ReadString('\n')
+func (har *hamAlertReader) readAndExpect(delim byte, expect string) error {
+	msg, err := har.readString(delim)
 	if err != nil {
 		log.Printf("%+v", err)
 		return err
@@ -107,46 +67,64 @@ func gatherHamAlerts() error {
 	if msg == nil {
 		return errEmptyMsg
 	}
-	if !strings.Contains(*msg, "HamAlert") {
+	if !strings.Contains(*msg, expect) {
 		err := fmt.Errorf(badMsg, *msg)
+		log.Printf("%+v", err)
+		return err
+	}
+
+	return nil
+}
+
+func (har *hamAlertReader) writeString(s string) error {
+	_, err := fmt.Fprintln(har.c, s)
+	if err != nil {
+		log.Printf("%+v", err)
+		return err
+	}
+
+	return nil
+}
+
+// gatherHamAlerts does the real work of inetgrating with HamAlert to collect spot
+// only returns if we couldn't connect to HamAlert or connection is closed
+func (har *hamAlertReader) gatherHamAlerts() error {
+	var err error
+	var msg *string
+
+	// login
+	err = har.readAndExpect('\n', "HamAlert")
+	if err != nil {
 		log.Printf("%+v", err)
 		return err
 	}
 
 	// hamalert username
-	msg, err = r.ReadString(':')
+	err = har.readAndExpect(':', "login:")
 	if err != nil {
 		log.Printf("%+v", err)
 		return err
 	}
-	if msg == nil {
-		return errEmptyMsg
-	}
-	if !strings.HasSuffix(*msg, "login:") {
-		err := fmt.Errorf(badMsg, *msg)
+	err = har.writeString(config.ClusterServices.HamAlert.Username)
+	if err != nil {
 		log.Printf("%+v", err)
 		return err
 	}
-	fmt.Fprintf(conHamAlert, config.ClusterServices.HamAlert.Username+"\n")
 
 	// hamalert password
-	msg, err = r.ReadString(':')
+	err = har.readAndExpect(':', "password:")
 	if err != nil {
 		log.Printf("%+v", err)
 		return err
 	}
-	if msg == nil {
-		return errEmptyMsg
-	}
-	if !strings.HasSuffix(*msg, "password:") {
-		err := fmt.Errorf(badMsg, *msg)
+	err = har.writeString(config.ClusterServices.HamAlert.Password)
+	if err != nil {
 		log.Printf("%+v", err)
 		return err
 	}
-	fmt.Fprintf(conHamAlert, config.ClusterServices.HamAlert.Password+"\n")
 
 	// verify greeting
-	msg, err = r.ReadString('>')
+	msg, err = har.readString('>')
 	if err != nil {
 		log.Printf("%+v", err)
 		return err
@@ -161,19 +139,23 @@ func gatherHamAlerts() error {
 	}
 
 	// throw out next line, part of greeting
-	_, err = r.ReadString('\n')
+	_, err = har.readString('\n')
 	if err != nil {
 		log.Printf("%+v", err)
 		return err
 	}
 
 	// prime with a little history
-	fmt.Fprintf(conHamAlert, "show/dx 5\n")
+	err = har.writeString("show/dx 5")
+	if err != nil {
+		log.Printf("%+v", err)
+		return err
+	}
 
 	// wait for new lines to show up and add spot entries for them
 	re := regexp.MustCompile(`^DX de\s+([^:]+):\s+([^\s]+)\s+([^\s]+)\s+(.*)([0-9]{4})Z`)
 	for {
-		msg, err = r.ReadString('\n')
+		msg, err = har.readString('\n')
 		if err != nil {
 			log.Printf("%+v", err)
 			return err
@@ -200,4 +182,46 @@ func gatherHamAlerts() error {
 			return err
 		}
 	}
+}
+
+// StartHamAlerts starts the collection of spots from HamAlert
+func StartHamAlerts() {
+	quitHamAlert = make(chan bool)
+
+	go func() {
+		// this gives us reconnect and ability to stop/start
+		for {
+			select {
+			case <-quitHamAlert:
+				return
+			default:
+				setTaskStatus(TaskHamAlert, TaskStatusOK)
+
+				var err error
+				har, err = NewHamAlertReader()
+				if err != nil {
+					log.Printf("%+v", err)
+				} else {
+					err = har.gatherHamAlerts()
+					if err != nil {
+						log.Printf("%+v", err)
+					}
+				}
+
+				setTaskStatus(TaskHamAlert, TaskStatusFailed)
+
+				if err != nil {
+					// some connection problem, pause before retry
+					time.Sleep(30 * time.Second)
+				}
+			}
+		}
+	}()
+}
+
+// StopHamAlerts shutdowns the collection of spots from HamAlert
+func StopHamAlerts() {
+	close(quitHamAlert)
+
+	har.c.Close()
 }
