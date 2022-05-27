@@ -6,9 +6,7 @@ import (
 	"log"
 	"math/rand"
 	"os"
-	"path"
 	"path/filepath"
-	"strings"
 	"time"
 
 	"github.com/bbathe/golog/config"
@@ -32,13 +30,13 @@ func main() {
 		log.Fatalf("%+v", err)
 	}
 
-	// by default the log file is in the same directory as the executable with the same base name
-	fn, err := os.Executable()
+	// location for log file and default config are in the working directory
+	wd, err := os.Getwd()
 	if err != nil {
 		ui.MsgError(nil, err)
 		log.Fatalf("%+v", err)
 	}
-	basefn := strings.TrimSuffix(fn, path.Ext(fn))
+	basefn := filepath.Join(wd, "golog")
 
 	// log to file
 	f, err := os.OpenFile(basefn+".log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
@@ -55,7 +53,7 @@ func main() {
 		// if user passed a filename, use that
 		cfn = configFile
 	} else {
-		// default config file is in the same directory as the executable with the same base name
+		// default config file
 		cfn = basefn + ".yaml"
 	}
 
