@@ -31,11 +31,35 @@ func drawCellStyles(tv *walk.TableView, style *walk.CellStyle, sb walk.SorterBas
 		}
 		defer brush.Dispose()
 
-		// pull back from the left
+		// theres some rounding issue with setting columns widths and drawing
+		// so we jigger around with x & width so we don't get spaces between the columns
 		b := walk.RectangleFrom96DPI(walk.Rectangle{
+			X:      bounds.X - 1,
+			Y:      bounds.Y,
+			Width:  bounds.Width + 2,
+			Height: bounds.Height,
+		}, dpi)
+
+		err = canvas.FillRectanglePixels(brush, b)
+		if err != nil {
+			MsgError(nil, err)
+			log.Printf("%+v", err)
+			return
+		}
+
+		// draw a seperator at left edge of column
+		brush, err = walk.NewSolidColorBrush(walk.RGB(190, 190, 190))
+		if err != nil {
+			MsgError(nil, err)
+			log.Printf("%+v", err)
+			return
+		}
+		defer brush.Dispose()
+
+		b = walk.RectangleFrom96DPI(walk.Rectangle{
 			X:      bounds.X,
 			Y:      bounds.Y,
-			Width:  bounds.Width - 1,
+			Width:  1,
 			Height: bounds.Height,
 		}, dpi)
 
