@@ -188,4 +188,7 @@ func flashWindow(parent *walk.MainWindow, times uint32) {
 	}
 
 	_, _, _ = flashWindowEx.Call(uintptr(unsafe.Pointer(&fw)))
+
+	// now beep
+	_ = win.MessageBeep(win.MB_OK)
 }
