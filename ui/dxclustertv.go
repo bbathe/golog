@@ -160,20 +160,6 @@ func dxClusterTableView() declarative.TableView {
 				},
 			},
 			declarative.Action{
-				Text: "PSKreporter",
-				OnTriggered: func() {
-					idx := tv.CurrentIndex()
-					if idx >= 0 {
-						err := launchPSKreporter(dxclustermodel.items[idx].Call)
-						if err != nil {
-							MsgError(mainWin, err)
-							log.Printf("%+v", err)
-							return
-						}
-					}
-				},
-			},
-			declarative.Action{
 				Text: "QSOs with call",
 				OnTriggered: func() {
 					idx := tv.CurrentIndex()
