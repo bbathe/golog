@@ -11,4 +11,7 @@ require (
 	gopkg.in/yaml.v2 v2.4.0
 )
 
-require gopkg.in/Knetic/govaluate.v3 v3.0.0 // indirect
+require (
+	github.com/akavel/rsrc v0.10.2 // indirect
+	gopkg.in/Knetic/govaluate.v3 v3.0.0 // indirect
+)
