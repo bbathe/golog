@@ -173,7 +173,7 @@ func (har *hamAlertReader) gatherHamAlerts() error {
 			// parse for elements
 			match := re.FindStringSubmatch(*msg)
 			if match == nil {
-				if strings.HasPrefix(*msg, "No Spots") {
+				if strings.HasPrefix(strings.ToLower(*msg), "no spots") {
 					// pause
 					time.Sleep(30 * time.Second)
 					continue
