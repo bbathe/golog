@@ -169,6 +169,12 @@ func (har *hamAlertReader) gatherHamAlerts() error {
 		// parse for elements
 		match := re.FindStringSubmatch(*msg)
 		if match == nil {
+			if strings.HasPrefix(*msg, "No Spots") {
+				// pause
+				time.Sleep(30 * time.Second)
+				continue
+			}
+
 			err := fmt.Errorf("could not match on message '%s'", *msg)
 			log.Printf("%+v", err)
 			return err
