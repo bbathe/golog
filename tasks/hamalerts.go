@@ -155,37 +155,42 @@ func (har *hamAlertReader) gatherHamAlerts() error {
 	// wait for new lines to show up and add spot entries for them
 	re := regexp.MustCompile(`^DX de\s+([^:]+):\s+([^\s]+)\s+([^\s]+)\s+(.*)([0-9]{4})Z`)
 	for {
-		msg, err = har.readString('\n')
-		if err != nil {
-			log.Printf("%+v", err)
-			return err
-		}
-		if msg == nil {
+		select {
+		case <-quitHamAlert:
 			return nil
-		}
-
-		//log.Printf("%s", *msg)
-
-		// parse for elements
-		match := re.FindStringSubmatch(*msg)
-		if match == nil {
-			if strings.HasPrefix(*msg, "No Spots") {
-				// pause
-				time.Sleep(30 * time.Second)
-				continue
+		default:
+			msg, err = har.readString('\n')
+			if err != nil {
+				log.Printf("%+v", err)
+				return err
+			}
+			if msg == nil {
+				return nil
 			}
 
-			err := fmt.Errorf("could not match on message '%s'", *msg)
-			log.Printf("%+v", err)
-			return err
-		}
+			//log.Printf("%s", *msg)
 
-		//log.Printf("%+v", match)
+			// parse for elements
+			match := re.FindStringSubmatch(*msg)
+			if match == nil {
+				if strings.HasPrefix(*msg, "No Spots") {
+					// pause
+					time.Sleep(30 * time.Second)
+					continue
+				}
 
-		err = spot.Add(match[5], match[3], match[2], match[4], match[1])
-		if err != nil {
-			log.Printf("%+v", err)
-			return err
+				err := fmt.Errorf("could not match on message '%s'", *msg)
+				log.Printf("%+v", err)
+				return err
+			}
+
+			//log.Printf("%+v", match)
+
+			err = spot.Add(match[5], match[3], match[2], match[4], match[1])
+			if err != nil {
+				log.Printf("%+v", err)
+				return err
+			}
 		}
 	}
 }
