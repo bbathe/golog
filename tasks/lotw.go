@@ -43,13 +43,7 @@ func QSLLotw() error {
 		r := rand.Intn(17-11) + 11
 
 		// if batch is greater than r size or oldest is older than 3 hours, then push to lotw
-		if len(qsos) > r || time.Now().Add(-4*time.Hour).Unix() > minLoadedAt {
-			err = uploadQSOsToLoTW(qsos, false)
-			if err != nil {
-				log.Printf("%+v", err)
-				return err
-			}
-
+		if len(qsos) > r || time.Now().Add(-3*time.Hour).Unix() > minLoadedAt {
 			err = uploadQSOsToLoTW(qsos, false)
 			if err != nil {
 				log.Printf("%+v", err)
