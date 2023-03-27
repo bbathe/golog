@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"fmt"
 	"log"
+	"math"
+	"math/rand"
 	"os/exec"
 	"path/filepath"
 	"sync"
@@ -29,10 +31,30 @@ func QSLLotw() error {
 	}
 
 	if len(qsos) > 0 {
-		err = uploadQSOsToLoTW(qsos, false)
-		if err != nil {
-			log.Printf("%+v", err)
-			return err
+		// get oldest loaded time of all these qsos
+		minLoadedAt := int64(math.MaxInt64)
+		for _, qso := range qsos {
+			if minLoadedAt > qso.LoadedAt {
+				minLoadedAt = qso.LoadedAt
+			}
+		}
+
+		// pick a number between 11 & 17
+		r := rand.Intn(17-11) + 11
+
+		// if batch is greater than r size or oldest is older than 3 hours, then push to lotw
+		if len(qsos) > r || time.Now().Add(-4*time.Hour).Unix() > minLoadedAt {
+			err = uploadQSOsToLoTW(qsos, false)
+			if err != nil {
+				log.Printf("%+v", err)
+				return err
+			}
+
+			err = uploadQSOsToLoTW(qsos, false)
+			if err != nil {
+				log.Printf("%+v", err)
+				return err
+			}
 		}
 	}
 
