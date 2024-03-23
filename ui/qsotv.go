@@ -95,6 +95,13 @@ func (m *QSOModel) Value(row, col int) interface{} {
 		} else {
 			return ""
 		}
+
+	case 11:
+		if item.QSLCard == qso.Sent {
+			return "\u2713"
+		} else {
+			return ""
+		}
 	}
 
 	return ""
@@ -152,6 +159,9 @@ func (m *QSOModel) Sort(col int, order walk.SortOrder) error {
 
 		case 10:
 			return c(a.QSLClublog > b.QSLClublog)
+
+		case 11:
+			return c(a.QSLCard > b.QSLCard)
 		}
 
 		return false
@@ -315,6 +325,20 @@ func qsoTableView() declarative.TableView {
 					}
 				},
 			},
+			declarative.Action{
+				Text: "QSL card",
+				OnTriggered: func() {
+					idx := tv.CurrentIndex()
+					if idx >= 0 {
+						err := qso.UpdateQSLsToSent([]qso.QSO{*qsomodel.items[idx]}, qso.QSLCard)
+						if err != nil {
+							MsgError(mainWin, err)
+							log.Printf("%+v", err)
+							return
+						}
+					}
+				},
+			},
 		},
 		Columns: []declarative.TableViewColumn{
 			{Title: "Date"},
@@ -324,10 +348,11 @@ func qsoTableView() declarative.TableView {
 			{Title: "Mode", Width: 85},
 			{Title: "RST Rcvd", Width: 85},
 			{Title: "RST Sent", Width: 85},
-			{Title: "QSL LoTW", Alignment: declarative.AlignCenter},
-			{Title: "QSL eQSL", Alignment: declarative.AlignCenter},
-			{Title: "QSL QRZ", Alignment: declarative.AlignCenter},
-			{Title: "QSL Club Log", Alignment: declarative.AlignCenter, Width: 125},
+			{Title: "LoTW", Width: 85},
+			{Title: "eQSL", Width: 85},
+			{Title: "QRZ", Width: 85},
+			{Title: "Club Log", Width: 85},
+			{Title: "Card", Width: 85},
 			{Title: ""},
 		},
 		Model: qsomodel,

@@ -3,8 +3,8 @@ package config
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"log"
+	"os"
 
 	"github.com/lxn/walk"
 	"gopkg.in/yaml.v2"
@@ -264,7 +264,7 @@ func Read(fname string) error {
 	configFile = fname
 
 	// #nosec G304
-	bytes, err := ioutil.ReadFile(configFile)
+	bytes, err := os.ReadFile(configFile)
 	if err != nil {
 		log.Printf("%+v", err)
 		return err
@@ -331,7 +331,7 @@ func Write() error {
 	}
 
 	// write out to file
-	err = ioutil.WriteFile(configFile, b, 0600)
+	err = os.WriteFile(configFile, b, 0600)
 	if err != nil {
 		log.Printf("%+v", err)
 		return err
@@ -373,7 +373,7 @@ func Copy(c *Configuration) error {
 
 	// reread from file
 	// #nosec G304
-	bytes, err := ioutil.ReadFile(configFile)
+	bytes, err := os.ReadFile(configFile)
 	if err != nil {
 		log.Printf("%+v", err)
 		return err
@@ -410,7 +410,7 @@ func Reload(c Configuration) error {
 	}
 
 	// write out to file
-	err = ioutil.WriteFile(configFile, b, 0600)
+	err = os.WriteFile(configFile, b, 0600)
 	if err != nil {
 		log.Printf("%+v", err)
 		return err

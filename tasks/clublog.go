@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"mime/multipart"
 	"net/http"
@@ -171,7 +170,7 @@ func uploadQSOsToClublog(qsos []qso.QSO) error {
 	defer resp.Body.Close()
 
 	// get response body
-	respBody, err := ioutil.ReadAll(resp.Body)
+	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		log.Printf("%+v", err)
 		return err

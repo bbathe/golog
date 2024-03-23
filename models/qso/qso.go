@@ -22,6 +22,7 @@ const (
 	QSLEqsl    = "qsl_eqsl"
 	QSLQrz     = "qsl_qrz"
 	QSLClublog = "qsl_clublog"
+	QSLCard    = "qsl_card"
 )
 
 type QSO struct {
@@ -41,6 +42,7 @@ type QSO struct {
 	QSLEqsl    QSLSent `db:"qsl_eqsl"`
 	QSLQrz     QSLSent `db:"qsl_qrz"`
 	QSLClublog QSLSent `db:"qsl_clublog"`
+	QSLCard    QSLSent `db:"qsl_card"`
 }
 
 const (
@@ -58,7 +60,8 @@ const (
 			qsl_lotw,
 			qsl_eqsl,
 			qsl_qrz,
-			qsl_clublog
+			qsl_clublog,
+			qsl_card
 		) values (
 			:loaded_at,
 			:station_callsign,
@@ -72,7 +75,8 @@ const (
 			:qsl_lotw,
 			:qsl_eqsl,
 			:qsl_qrz,
-			:qsl_clublog
+			:qsl_clublog,
+			:qsl_card
 		)
 		on conflict(station_callsign, band, call, mode, qso_date, qso_time) do nothing
 	`
@@ -117,7 +121,8 @@ const (
 			qsl_lotw,
 			qsl_eqsl,
 			qsl_qrz,
-			qsl_clublog
+			qsl_clublog,
+			qsl_card
 		from
 			qsos
 	`

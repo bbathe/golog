@@ -4,23 +4,57 @@ on:
     branches:    
       - '**'
 jobs:
-
-  codetest_build:
+  codetest:
     name: Codetest
     runs-on: ubuntu-latest
     steps:
-
-      - name: Set up Go 1.18
-        uses: actions/setup-go@v1
+      - name: Set up Go 1.22
+        uses: actions/setup-go@v3
         with:
-          go-version: 1.18
+          go-version: '1.22.1'
         id: go
 
       - name: Check out code into the Go module directory
         uses: actions/checkout@v1
 
+      - name: Cache Go's build cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - name: Cache build tools
+        id: cachebuildtools
+        uses: actions/cache@v3
+        with:
+          path: |
+            /home/runner/go/bin/golangci-lint
+          key: ${{ runner.os }}-tools-gol1562
+          restore-keys: |
+            ${{ runner.os }}-tools-
+
+      - name: Install golangci-lint
+        if: steps.cachebuildtools.outputs.cache-hit != 'true'
+        env:
+          GOLANGCI_LINT_VERSION: v1.56.2
+        run: |
+          sudo curl --header "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin ${GOLANGCI_LINT_VERSION}
+
       - name: Get dependencies
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: make get
 
       - name: Codetest
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: make codetest
+
+      - name: Vulncheck
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: make vulncheck

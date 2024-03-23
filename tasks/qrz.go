@@ -2,7 +2,7 @@ package tasks
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 	"net/url"
@@ -117,7 +117,7 @@ func uploadQSOsToQRZ(qsos []qso.QSO) error {
 		defer resp.Body.Close()
 
 		// get response body
-		respBody, err := ioutil.ReadAll(resp.Body)
+		respBody, err := io.ReadAll(resp.Body)
 		if err != nil {
 			log.Printf("%+v", err)
 			return err

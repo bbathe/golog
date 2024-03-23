@@ -3,8 +3,8 @@ package config
 import (
 	"encoding/xml"
 	"errors"
-	"io/ioutil"
 	"log"
+	"os"
 	"strconv"
 	"strings"
 
@@ -158,7 +158,7 @@ func ListModeNames() []string {
 // ReadLookupsFromTQSL returns the lookups from the TQSL config.xml file
 func ReadLookupsFromTQSL(tqslconfigxml string) (Lookups, error) {
 	// #nosec G304
-	bs, err := ioutil.ReadFile(tqslconfigxml)
+	bs, err := os.ReadFile(tqslconfigxml)
 	if err != nil {
 		log.Printf("%+v", err)
 		return Lookups{}, err
@@ -218,7 +218,7 @@ func ReadLookupsFromFile(fname string) error {
 	lookupFile = fname
 
 	// #nosec G304
-	bs, err := ioutil.ReadFile(lookupFile)
+	bs, err := os.ReadFile(lookupFile)
 	if err != nil {
 		log.Printf("%+v", err)
 		return err
@@ -258,7 +258,7 @@ func WriteLookupsToFile() error {
 	}
 
 	// write out to file
-	err = ioutil.WriteFile(lookupFile, b, 0600)
+	err = os.WriteFile(lookupFile, b, 0600)
 	if err != nil {
 		log.Printf("%+v", err)
 		return err
@@ -281,7 +281,7 @@ func ReloadLookups(l Lookups) error {
 	}
 
 	// write out to file
-	err = ioutil.WriteFile(lookupFile, b, 0600)
+	err = os.WriteFile(lookupFile, b, 0600)
 	if err != nil {
 		log.Printf("%+v", err)
 		return err
