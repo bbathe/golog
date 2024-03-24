@@ -4,6 +4,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/bbathe/golog/db"
@@ -221,7 +222,17 @@ func GoLogWindow() error {
 										Text:     declarative.Bind("Date"),
 										AssignTo: &leDate,
 										OnTextChanged: func() {
-											selectedQSO.Date = leDate.Text()
+											selectedQSO.Date = strings.TrimSpace(leDate.Text())
+										},
+										OnEditingFinished: func() {
+											d := strings.TrimSpace(leDate.Text())
+											selectedQSO.Date = d
+											err := leDate.SetText(d)
+											if err != nil {
+												MsgError(mainWin, err)
+												log.Printf("%+v", err)
+												return
+											}
 										},
 									},
 									declarative.PushButton{
@@ -268,7 +279,17 @@ func GoLogWindow() error {
 										Text:     declarative.Bind("Time"),
 										AssignTo: &leTime,
 										OnTextChanged: func() {
-											selectedQSO.Time = leTime.Text()
+											selectedQSO.Time = strings.TrimSpace(leTime.Text())
+										},
+										OnEditingFinished: func() {
+											t := strings.TrimSpace(leTime.Text())
+											selectedQSO.Time = t
+											err := leTime.SetText(t)
+											if err != nil {
+												MsgError(mainWin, err)
+												log.Printf("%+v", err)
+												return
+											}
 										},
 									},
 									declarative.PushButton{
@@ -316,7 +337,17 @@ func GoLogWindow() error {
 										CaseMode: declarative.CaseModeUpper,
 										AssignTo: &leCall,
 										OnTextChanged: func() {
-											selectedQSO.Call = leCall.Text()
+											selectedQSO.Call = strings.TrimSpace(leCall.Text())
+										},
+										OnEditingFinished: func() {
+											c := strings.TrimSpace(leCall.Text())
+											selectedQSO.Call = c
+											err := leCall.SetText(c)
+											if err != nil {
+												MsgError(mainWin, err)
+												log.Printf("%+v", err)
+												return
+											}
 										},
 									},
 									declarative.PushButton{
@@ -397,7 +428,17 @@ func GoLogWindow() error {
 								CaseMode: declarative.CaseModeUpper,
 								AssignTo: &leRSTRcvd,
 								OnTextChanged: func() {
-									selectedQSO.RSTRcvd = leRSTRcvd.Text()
+									selectedQSO.RSTRcvd = strings.TrimSpace(leRSTRcvd.Text())
+								},
+								OnEditingFinished: func() {
+									r := strings.TrimSpace(leRSTRcvd.Text())
+									selectedQSO.RSTRcvd = r
+									err := leRSTRcvd.SetText(r)
+									if err != nil {
+										MsgError(mainWin, err)
+										log.Printf("%+v", err)
+										return
+									}
 								},
 							},
 						},
@@ -413,7 +454,17 @@ func GoLogWindow() error {
 								CaseMode: declarative.CaseModeUpper,
 								AssignTo: &leRSTSent,
 								OnTextChanged: func() {
-									selectedQSO.RSTSent = leRSTSent.Text()
+									selectedQSO.RSTSent = strings.TrimSpace(leRSTSent.Text())
+								},
+								OnEditingFinished: func() {
+									s := strings.TrimSpace(leRSTSent.Text())
+									selectedQSO.RSTSent = s
+									err := leRSTSent.SetText(s)
+									if err != nil {
+										MsgError(mainWin, err)
+										log.Printf("%+v", err)
+										return
+									}
 								},
 							},
 						},
