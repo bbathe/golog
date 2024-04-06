@@ -638,8 +638,8 @@ func FindQSLsToSend(service QSLService, delay int) ([]QSO, error) {
 	return qsos, nil
 }
 
-// UpdateQSLsToSent updates the QSOs as being sent to QSL service
-func UpdateQSLsToSent(qsos []QSO, service QSLService) error {
+// UpdateQSL updates the QSOs QSL status
+func UpdateQSL(qsos []QSO, service QSLService, sent QSLSent) error {
 	var err error
 
 	if db.QSODb == nil {
@@ -660,7 +660,7 @@ func UpdateQSLsToSent(qsos []QSO, service QSLService) error {
 		}
 	}()
 
-	q, err := tx.PrepareNamed(fmt.Sprintf("update qsos set %s = 1 where id = :id", service))
+	q, err := tx.PrepareNamed(fmt.Sprintf("update qsos set %s = %d where id = :id", service, sent))
 	if err != nil {
 		log.Printf("%+v", err)
 		return err

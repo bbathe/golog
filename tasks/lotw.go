@@ -114,7 +114,7 @@ func uploadQSOsToLoTW(qsos []qso.QSO, _ bool) error {
 	}
 
 	// set as sent in db
-	err = qso.UpdateQSLsToSent(qsos, qso.QSLLotw)
+	err = qso.UpdateQSL(qsos, qso.QSLLotw, qso.Sent)
 	if err != nil {
 		log.Printf("%+v", err)
 		return err

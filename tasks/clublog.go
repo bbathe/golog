@@ -186,7 +186,7 @@ func uploadQSOsToClublog(qsos []qso.QSO) error {
 	}
 
 	// set as sent in db
-	err = qso.UpdateQSLsToSent(qsos, qso.QSLClublog)
+	err = qso.UpdateQSL(qsos, qso.QSLClublog, qso.Sent)
 	if err != nil {
 		log.Printf("%+v", err)
 		return err

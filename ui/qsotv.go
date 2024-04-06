@@ -330,7 +330,11 @@ func qsoTableView() declarative.TableView {
 				OnTriggered: func() {
 					idx := tv.CurrentIndex()
 					if idx >= 0 {
-						err := qso.UpdateQSLsToSent([]qso.QSO{*qsomodel.items[idx]}, qso.QSLCard)
+						sent := qso.Sent
+						if qsomodel.items[idx].QSLCard == qso.Sent {
+							sent = qso.NotSent
+						}
+						err := qso.UpdateQSL([]qso.QSO{*qsomodel.items[idx]}, qso.QSLCard, sent)
 						if err != nil {
 							MsgError(mainWin, err)
 							log.Printf("%+v", err)

@@ -149,7 +149,7 @@ func uploadQSOsToQRZ(qsos []qso.QSO) error {
 		}
 
 		// set as sent in db
-		err = qso.UpdateQSLsToSent([]qso.QSO{q}, qso.QSLQrz)
+		err = qso.UpdateQSL([]qso.QSO{q}, qso.QSLQrz, qso.Sent)
 		if err != nil {
 			log.Printf("%+v", err)
 			return err
