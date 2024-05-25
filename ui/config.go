@@ -560,9 +560,6 @@ func tabConfigLogbookServices() declarative.TabPage {
 	var leCLCallsign *walk.LineEdit
 	var leCLAPIKey *walk.LineEdit
 
-	var leEQSLUsername *walk.LineEdit
-	var leEQSLPassword *walk.LineEdit
-
 	var leTQSLExeLocation *walk.LineEdit
 	var leTQSLStationLocationName *walk.LineEdit
 
@@ -664,46 +661,6 @@ func tabConfigLogbookServices() declarative.TabPage {
 								Text:     declarative.Bind("StationLocationName"),
 								OnTextChanged: func() {
 									newConfig.LogbookServices.TQSL.StationLocationName = leTQSLStationLocationName.Text()
-								},
-							},
-						},
-					},
-				},
-			},
-			declarative.RadioButtonGroupBox{
-				Title:  "eQSL",
-				Layout: declarative.HBox{MarginsZero: true},
-				DataBinder: declarative.DataBinder{
-					DataSource:     &newConfig.LogbookServices.EQSL,
-					ErrorPresenter: declarative.ToolTipErrorPresenter{},
-				},
-				Children: []declarative.Widget{
-					declarative.Composite{
-						Layout: declarative.VBox{},
-						Children: []declarative.Widget{
-							declarative.Label{
-								Text: "Username",
-							},
-							declarative.LineEdit{
-								AssignTo: &leEQSLUsername,
-								Text:     declarative.Bind("Username"),
-								OnTextChanged: func() {
-									newConfig.LogbookServices.EQSL.Username = leEQSLUsername.Text()
-								},
-							},
-						},
-					},
-					declarative.Composite{
-						Layout: declarative.VBox{},
-						Children: []declarative.Widget{
-							declarative.Label{
-								Text: "Password",
-							},
-							declarative.LineEdit{
-								AssignTo: &leEQSLPassword,
-								Text:     declarative.Bind("Password"),
-								OnTextChanged: func() {
-									newConfig.LogbookServices.EQSL.Password = leEQSLPassword.Text()
 								},
 							},
 						},

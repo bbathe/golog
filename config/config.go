@@ -84,26 +84,6 @@ func (c *clublog) Validate() error {
 	return nil
 }
 
-type eqsl struct {
-	Username string
-	Password string
-}
-
-// Validate tests the required eqsl fields
-// doesn't log errors because you don't have to use eqsl
-func (e *eqsl) Validate() error {
-	if e.Username == "" {
-		err := fmt.Errorf(msgMissingField, "eQSL Username")
-		return err
-	}
-	if e.Password == "" {
-		err := fmt.Errorf(msgMissingField, "eQSL Password")
-		return err
-	}
-
-	return nil
-}
-
 type qrz struct {
 	APIKey string
 }
@@ -142,7 +122,6 @@ func (t *tqsl) Validate() error {
 type logbookservices struct {
 	QSLDelay int
 	TQSL     tqsl
-	EQSL     eqsl
 	ClubLog  clublog
 	QRZ      qrz
 }

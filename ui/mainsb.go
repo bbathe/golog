@@ -14,7 +14,6 @@ import (
 var (
 	icSourceFiles *walk.ImageView
 	icLoTW        *walk.ImageView
-	icEQSL        *walk.ImageView
 	icQRZ         *walk.ImageView
 	icClubLog     *walk.ImageView
 	icHamAlert    *walk.ImageView
@@ -46,14 +45,6 @@ func updateStatuses(statuses []tasks.GoLogTaskStatus) {
 
 	if icLoTW != nil {
 		err := icLoTW.SetImage(statusImage(statuses[tasks.TaskQSLLoTW]))
-		if err != nil {
-			log.Printf("%+v", err)
-			return
-		}
-	}
-
-	if icEQSL != nil {
-		err := icEQSL.SetImage(statusImage(statuses[tasks.TaskQSLEQSL]))
 		if err != nil {
 			log.Printf("%+v", err)
 			return
@@ -115,11 +106,6 @@ func mainStatusBar() declarative.Composite {
 				Image:       imgNotRunning,
 				AssignTo:    &icLoTW,
 				ToolTipText: "LoTW",
-			},
-			declarative.ImageView{
-				Image:       imgNotRunning,
-				AssignTo:    &icEQSL,
-				ToolTipText: "eQSL",
 			},
 			declarative.ImageView{
 				Image:       imgNotRunning,

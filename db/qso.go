@@ -105,7 +105,6 @@ func NewQSODb() error {
 			rst_rcvd text null,
 			rst_sent text null,
 			qsl_lotw integer not null default 0 check (qsl_lotw in (0, 1)),
-			qsl_eqsl integer not null default 0 check (qsl_eqsl in (0, 1)),
 			qsl_qrz integer not null default 0 check (qsl_qrz in (0, 1)),
 			qsl_clublog integer not null default 0 check (qsl_clublog in (0, 1)),
 			qsl_card integer not null default 0 check (qsl_card in (0, 1))

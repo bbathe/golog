@@ -45,9 +45,6 @@ func Start() {
 	if config.LogbookServices.TQSL.Validate() == nil {
 		tasksOneMinute = append(tasksOneMinute, taskWrapper(TaskQSLLoTW, QSLLotw))
 	}
-	if config.LogbookServices.EQSL.Validate() == nil {
-		tasksOneMinute = append(tasksOneMinute, taskWrapper(TaskQSLEQSL, QSLEqsl))
-	}
 	if config.LogbookServices.QRZ.Validate() == nil {
 		tasksOneMinute = append(tasksOneMinute, taskWrapper(TaskQSLQRZ, QSLQrz))
 	}
@@ -137,9 +134,6 @@ func Shutdown() {
 	}
 	if config.LogbookServices.ClubLog.Validate() == nil {
 		tasks = append(tasks, QSLClublogFinal)
-	}
-	if config.LogbookServices.EQSL.Validate() == nil {
-		tasks = append(tasks, QSLEqslFinal)
 	}
 	if config.LogbookServices.QRZ.Validate() == nil {
 		tasks = append(tasks, QSLQrzFinal)

@@ -163,7 +163,7 @@ func QSOFromADIFRecord(record string) (*qso.QSO, error) {
 }
 
 // ReadFromFile reads QSOs from the ADIF file fname
-func ReadFromFile(fname string, qsllotw, qsleqsl, qslqrz, qslclublog qso.QSLSent) ([]qso.QSO, error) {
+func ReadFromFile(fname string, qsllotw, qslqrz, qslclublog qso.QSLSent) ([]qso.QSO, error) {
 	loadedAt := time.Now().Unix()
 
 	file, err := os.Open(fname)
@@ -204,7 +204,6 @@ func ReadFromFile(fname string, qsllotw, qsleqsl, qslqrz, qslclublog qso.QSLSent
 			// override/default some fields
 			qso.LoadedAt = loadedAt
 			qso.QSLLotw = qsllotw
-			qso.QSLEqsl = qsleqsl
 			qso.QSLQrz = qslqrz
 			qso.QSLClublog = qslclublog
 			if qso.StationCallsign == "" {

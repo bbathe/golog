@@ -1,13 +1,13 @@
 module github.com/bbathe/golog
 
-go 1.22.2
+go 1.22.3
 
 require (
-	github.com/jmoiron/sqlx v1.3.5
+	github.com/jmoiron/sqlx v1.4.0
 	github.com/lxn/walk v0.0.0-20210112085537-c389da54e794
 	github.com/lxn/win v0.0.0-20210218163916-a377121e959e
 	github.com/mattn/go-sqlite3 v1.14.22
-	golang.org/x/sys v0.19.0
+	golang.org/x/sys v0.20.0
 	gopkg.in/yaml.v2 v2.4.0
 )
 

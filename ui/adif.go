@@ -17,7 +17,6 @@ func importADIF(parent walk.Form) error {
 	var leADIFFile *walk.LineEdit
 
 	var cbClublog *walk.CheckBox
-	var cbEQSL *walk.CheckBox
 	var cbLoTW *walk.CheckBox
 	var cbQRZ *walk.CheckBox
 
@@ -91,10 +90,6 @@ func importADIF(parent walk.Form) error {
 								AssignTo: &cbLoTW,
 							},
 							declarative.CheckBox{
-								Text:     "eQSL",
-								AssignTo: &cbEQSL,
-							},
-							declarative.CheckBox{
 								Text:     "QRZ",
 								AssignTo: &cbQRZ,
 							},
@@ -120,11 +115,6 @@ func importADIF(parent walk.Form) error {
 									qsllotw = qso.NotSent
 								}
 
-								qsleqsl := qso.Sent
-								if cbEQSL.Checked() {
-									qsleqsl = qso.NotSent
-								}
-
 								qslqrz := qso.Sent
 								if cbQRZ.Checked() {
 									qslqrz = qso.NotSent
@@ -135,7 +125,7 @@ func importADIF(parent walk.Form) error {
 									qslclublog = qso.NotSent
 								}
 
-								qs, err := adif.ReadFromFile(fname, qsllotw, qsleqsl, qslqrz, qslclublog)
+								qs, err := adif.ReadFromFile(fname, qsllotw, qslqrz, qslclublog)
 								if err != nil {
 									MsgError(nil, err)
 									log.Printf("%+v", err)

@@ -19,7 +19,6 @@ type QSLService string
 
 const (
 	QSLLotw    = "qsl_lotw"
-	QSLEqsl    = "qsl_eqsl"
 	QSLQrz     = "qsl_qrz"
 	QSLClublog = "qsl_clublog"
 	QSLCard    = "qsl_card"
@@ -39,7 +38,6 @@ type QSO struct {
 	RSTSent string `db:"rst_sent"`
 
 	QSLLotw    QSLSent `db:"qsl_lotw"`
-	QSLEqsl    QSLSent `db:"qsl_eqsl"`
 	QSLQrz     QSLSent `db:"qsl_qrz"`
 	QSLClublog QSLSent `db:"qsl_clublog"`
 	QSLCard    QSLSent `db:"qsl_card"`
@@ -58,7 +56,6 @@ const (
 			rst_rcvd,
 			rst_sent,
 			qsl_lotw,
-			qsl_eqsl,
 			qsl_qrz,
 			qsl_clublog,
 			qsl_card
@@ -73,7 +70,6 @@ const (
 			:rst_rcvd,
 			:rst_sent,
 			:qsl_lotw,
-			:qsl_eqsl,
 			:qsl_qrz,
 			:qsl_clublog,
 			:qsl_card
@@ -119,7 +115,6 @@ const (
 			rst_rcvd,
 			rst_sent,
 			qsl_lotw,
-			qsl_eqsl,
 			qsl_qrz,
 			qsl_clublog,
 			qsl_card

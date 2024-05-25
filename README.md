@@ -17,7 +17,7 @@ A very minimal set of data is captured to record a QSO:
 * RST received
 * RST sent
 
-The philosphy is that if you want to find additional information on your QSO partner (address, other hobbies, etc.) goto a site like [QRZ.com](https://www.qrz.com).  And, even though this application stores QSO data, the final resting place is really at sites like [Logbook of the World](https://lotw.arrl.org), [Club Log](https://clublog.org), [eQSL](https://eqsl.cc), and the [QRZ Logbook](https://logbook.qrz.com) which provide a longitudinal record of all your QSOs, aggregated across the various logging application you will use in your lifetime.
+The philosphy is that if you want to find additional information on your QSO partner (address, other hobbies, etc.) goto a site like [QRZ.com](https://www.qrz.com).  And, even though this application stores QSO data, the final resting place is really at sites like [Logbook of the World](https://lotw.arrl.org), [Club Log](https://clublog.org), and the [QRZ Logbook](https://logbook.qrz.com) which provide a longitudinal record of all your QSOs, aggregated across the various logging application you will use in your lifetime.
 
 ## Installation
 To install this application:

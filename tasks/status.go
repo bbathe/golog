@@ -5,7 +5,6 @@ type GoLogTask int
 const (
 	TaskSourceFiles GoLogTask = iota
 	TaskQSLLoTW
-	TaskQSLEQSL
 	TaskQSLQRZ
 	TaskQSLClubLog
 	TaskHamAlert

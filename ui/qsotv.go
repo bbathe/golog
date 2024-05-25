@@ -76,27 +76,20 @@ func (m *QSOModel) Value(row, col int) interface{} {
 		}
 
 	case 8:
-		if item.QSLEqsl == qso.Sent {
-			return "\u2713"
-		} else {
-			return ""
-		}
-
-	case 9:
 		if item.QSLQrz == qso.Sent {
 			return "\u2713"
 		} else {
 			return ""
 		}
 
-	case 10:
+	case 9:
 		if item.QSLClublog == qso.Sent {
 			return "\u2713"
 		} else {
 			return ""
 		}
 
-	case 11:
+	case 10:
 		if item.QSLCard == qso.Sent {
 			return "\u2713"
 		} else {
@@ -152,15 +145,12 @@ func (m *QSOModel) Sort(col int, order walk.SortOrder) error {
 			return c(a.QSLLotw > b.QSLLotw)
 
 		case 8:
-			return c(a.QSLEqsl > b.QSLEqsl)
-
-		case 9:
 			return c(a.QSLQrz > b.QSLQrz)
 
-		case 10:
+		case 9:
 			return c(a.QSLClublog > b.QSLClublog)
 
-		case 11:
+		case 10:
 			return c(a.QSLCard > b.QSLCard)
 		}
 
@@ -353,10 +343,9 @@ func qsoTableView() declarative.TableView {
 			{Title: "RST Rcvd", Width: 85},
 			{Title: "RST Sent", Width: 85},
 			{Title: "LoTW", Width: 85},
-			{Title: "eQSL", Width: 85},
-			{Title: "QRZ", Width: 85},
-			{Title: "Club Log", Width: 85},
-			{Title: "Card", Width: 85},
+			{Title: "QSL QRZ", Width: 85},
+			{Title: "QSL Club Log", Width: 85},
+			{Title: "QSL Card", Width: 85},
 			{Title: ""},
 		},
 		Model: qsomodel,
