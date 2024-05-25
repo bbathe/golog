@@ -257,24 +257,6 @@ func qsoTableView() declarative.TableView {
 		ColumnsOrderable:    false,
 		ContextMenuItems: []declarative.MenuItem{
 			declarative.Action{
-				Text: "QSL card",
-				OnTriggered: func() {
-					idx := tv.CurrentIndex()
-					if idx >= 0 {
-						sent := qso.Sent
-						if qsomodel.items[idx].QSLCard == qso.Sent {
-							sent = qso.NotSent
-						}
-						err := qso.UpdateQSL([]qso.QSO{*qsomodel.items[idx]}, qso.QSLCard, sent)
-						if err != nil {
-							MsgError(mainWin, err)
-							log.Printf("%+v", err)
-							return
-						}
-					}
-				},
-			},
-			declarative.Action{
 				Text: "QRZ page",
 				OnTriggered: func() {
 					idx := tv.CurrentIndex()
@@ -316,6 +298,24 @@ func qsoTableView() declarative.TableView {
 							"",
 							"",
 						)
+					}
+				},
+			},
+			declarative.Action{
+				Text: "QSL card",
+				OnTriggered: func() {
+					idx := tv.CurrentIndex()
+					if idx >= 0 {
+						sent := qso.Sent
+						if qsomodel.items[idx].QSLCard == qso.Sent {
+							sent = qso.NotSent
+						}
+						err := qso.UpdateQSL([]qso.QSO{*qsomodel.items[idx]}, qso.QSLCard, sent)
+						if err != nil {
+							MsgError(mainWin, err)
+							log.Printf("%+v", err)
+							return
+						}
 					}
 				},
 			},
