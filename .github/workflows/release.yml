@@ -14,10 +14,10 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y mingw-w64
 
-      - name: Set up Go 1.22
+      - name: Set up Go 1.23
         uses: actions/setup-go@v3
         with:
-          go-version: '1.22.1'
+          go-version: '1.23.4'
         id: go
 
       - name: Check out code into the Go module directory
