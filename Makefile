@@ -24,6 +24,9 @@ build: default
 	zip -j target/$(package)_windows_amd64.zip target/$(package).exe
 	go mod tidy
 
+deploy: build
+	cp -f target/$(package).exe "/mnt/c/program files/$(package)/$(package).exe"
+
 fmt:
 	GOOS=windows GOARCH=amd64 go fmt ./...
 
