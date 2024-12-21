@@ -1,0 +1,10 @@
+linters-settings:
+  gocyclo:
+    min-complexity: 30
+  nakedret:
+    max-func-lines: 1
+linters:
+  disable-all: true
+  enable:
+    - gocyclo
+    - nakedret
