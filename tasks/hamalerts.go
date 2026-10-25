@@ -45,6 +45,13 @@ func (har *hamAlertReader) stopped() bool {
 	return har.ctx != nil && har.ctx.Err() != nil
 }
 
+// isHamAlertPrompt reports the DXSpider idle prompt, for example
+// "AD8FD de HamAlert 25-10-2026 0057>".
+func isHamAlertPrompt(msg string) bool {
+	msg = strings.TrimSpace(msg)
+	return strings.Contains(msg, " de HamAlert ") && strings.HasSuffix(msg, ">")
+}
+
 func (har *hamAlertReader) readString(delim byte) (*string, error) {
 	msg, err := har.r.ReadString(delim)
 	if err != nil {
@@ -177,6 +184,9 @@ func (har *hamAlertReader) gatherHamAlerts() error {
 		// parse for elements
 		match := re.FindStringSubmatch(*msg)
 		if match == nil {
+			if isHamAlertPrompt(*msg) {
+				continue
+			}
 			if strings.HasPrefix(strings.ToLower(*msg), "no spots") {
 				select {
 				case <-har.ctx.Done():
