@@ -5,10 +5,6 @@ package := $(shell basename `pwd`)
 default: fmt codetest
 
 get:
-ifneq ("$(CI)", "true")
-	go get -u ./...
-	go mod tidy
-endif
 	go mod download
 	go mod verify
 
@@ -17,12 +13,10 @@ codetest: lint vet
 build: default
 	mkdir -p target
 	rm -f target/$(package).exe
-	go get github.com/akavel/rsrc
-	go install github.com/akavel/rsrc
+	go install github.com/akavel/rsrc@v0.10.2
 	$(shell go env GOPATH)/bin/rsrc -arch amd64 -manifest $(package).manifest -ico $(package).ico -o cmd/golog/$(package).syso
 	GOOS=windows GOARCH=amd64 CGO_ENABLED=1 CC="x86_64-w64-mingw32-gcc" go build -v -ldflags "-s -w -H=windowsgui" -o target/$(package).exe github.com/bbathe/golog/cmd/golog
 	zip -j target/$(package)_windows_amd64.zip target/$(package).exe
-	go mod tidy
 
 deploy: build
 	cp -f target/$(package).exe "/mnt/c/program files/$(package)/$(package).exe"

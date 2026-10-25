@@ -1,6 +1,6 @@
 module github.com/bbathe/golog
 
-go 1.23.4
+go 1.27.3
 
 require (
 	github.com/jmoiron/sqlx v1.4.0
