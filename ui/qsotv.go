@@ -31,7 +31,11 @@ func NewQSOModel() *QSOModel {
 
 	// register event handler for any qso changes
 	qso.Attach(func() {
-		qsomodel.ResetRows()
+		runOnUI(func() {
+			if qsomodel != nil {
+				qsomodel.ResetRows()
+			}
+		})
 	})
 
 	return m

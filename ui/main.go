@@ -697,6 +697,15 @@ func GoLogWindow() error {
 	win.SetWindowLong(pbQRZ.Handle(), win.GWL_STYLE,
 		win.GetWindowLong(pbQRZ.Handle(), win.GWL_STYLE) & ^win.WS_TABSTOP)
 
+	// pick up qsos, spots, and task status that arrived while the window was being created
+	if qsomodel != nil {
+		qsomodel.ResetRows()
+	}
+	if dxclustermodel != nil {
+		dxclustermodel.ResetRows()
+	}
+	tasks.RepublishStatus()
+
 	// make visible
 	mainWin.SetVisible(true)
 

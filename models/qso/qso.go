@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/bbathe/golog/db"
+	"github.com/jmoiron/sqlx"
 )
 
 type QSLSent int64
@@ -161,6 +162,17 @@ var (
 	handlers []QSOChangeEventHandler
 )
 
+// rollbackQSOTx rolls back tx when the caller's error is set.
+// A rollback failure is logged and the original error is left in place.
+func rollbackQSOTx(tx *sqlx.Tx, errp *error) {
+	if errp == nil || *errp == nil {
+		return
+	}
+	if rbErr := tx.Rollback(); rbErr != nil {
+		log.Printf("%+v", rbErr)
+	}
+}
+
 // allow callers to register to recieve event after any qso changes occur
 type QSOChangeEventHandler func()
 
@@ -277,16 +289,12 @@ func BulkAdd(qsos []QSO) error {
 	}
 
 	// in a transaction
-	tx := db.QSODb.MustBegin()
-	defer func() {
-		// if we've had an error, rollback
-		if err != nil {
-			err = tx.Rollback()
-			if err != nil {
-				log.Printf("%+v", err)
-			}
-		}
-	}()
+	tx, err := db.QSODb.Beginx()
+	if err != nil {
+		log.Printf("%+v", err)
+		return err
+	}
+	defer rollbackQSOTx(tx, &err)
 
 	qsoInsert, err := tx.PrepareNamed(stmtQSOInsert)
 	if err != nil {
@@ -296,7 +304,7 @@ func BulkAdd(qsos []QSO) error {
 
 	// insert all qsos
 	for _, qso := range qsos {
-		err := qso.Validate(false)
+		err = qso.Validate(false)
 		if err != nil {
 			log.Printf("%+v", err)
 			return err
@@ -338,16 +346,12 @@ func (qso *QSO) UpdateOnlyQSO() error {
 	}
 
 	// in a transaction
-	tx := db.QSODb.MustBegin()
-	defer func() {
-		// if we've had an error, rollback
-		if err != nil {
-			err = tx.Rollback()
-			if err != nil {
-				log.Printf("%+v", err)
-			}
-		}
-	}()
+	tx, err := db.QSODb.Beginx()
+	if err != nil {
+		log.Printf("%+v", err)
+		return err
+	}
+	defer rollbackQSOTx(tx, &err)
 
 	// see if there is already a qso matching this update
 	q, err := tx.PrepareNamed(stmtQSOSelectDupTest)
@@ -472,6 +476,12 @@ func Get(ID int64) (*QSO, error) {
 	var qso []QSO
 	err = q.Select(&qso, params)
 	if err != nil {
+		log.Printf("%+v", err)
+		return nil, err
+	}
+
+	if len(qso) == 0 {
+		err = fmt.Errorf("qso %d not found", ID)
 		log.Printf("%+v", err)
 		return nil, err
 	}
@@ -644,16 +654,12 @@ func UpdateQSL(qsos []QSO, service QSLService, sent QSLSent) error {
 	}
 
 	// in a transaction
-	tx := db.QSODb.MustBegin()
-	defer func() {
-		// if we've had an error, rollback
-		if err != nil {
-			err = tx.Rollback()
-			if err != nil {
-				log.Printf("%+v", err)
-			}
-		}
-	}()
+	tx, err := db.QSODb.Beginx()
+	if err != nil {
+		log.Printf("%+v", err)
+		return err
+	}
+	defer rollbackQSOTx(tx, &err)
 
 	q, err := tx.PrepareNamed(fmt.Sprintf("update qsos set %s = %d where id = :id", service, sent))
 	if err != nil {

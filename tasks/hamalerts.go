@@ -2,6 +2,7 @@ package tasks
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"io"
 	"log"
@@ -15,8 +16,8 @@ import (
 )
 
 var (
-	quitHamAlert chan bool
-	har          *hamAlertReader
+	hamCancel context.CancelFunc
+	har       *hamAlertReader
 
 	errEmptyMsg = fmt.Errorf("empty message from HamAlert server")
 	badMsg      = "unexpected message from HamAlert server %s"
@@ -24,8 +25,9 @@ var (
 
 // our own type so we can make this "quitable"
 type hamAlertReader struct {
-	c net.Conn
-	r *bufio.Reader
+	c   net.Conn
+	r   *bufio.Reader
+	ctx context.Context
 }
 
 func NewHamAlertReader() (*hamAlertReader, error) {
@@ -39,20 +41,22 @@ func NewHamAlertReader() (*hamAlertReader, error) {
 	return &hamAlertReader{c: con, r: bufio.NewReader(con)}, nil
 }
 
+func (har *hamAlertReader) stopped() bool {
+	return har.ctx != nil && har.ctx.Err() != nil
+}
+
 func (har *hamAlertReader) readString(delim byte) (*string, error) {
 	msg, err := har.r.ReadString(delim)
 	if err != nil {
-		select {
-		case <-quitHamAlert:
+		if har.stopped() {
 			return nil, nil
-		default:
-			if err == io.EOF {
-				var empty string
-				return &empty, nil
-			}
-			log.Printf("%+v", err)
-			return nil, err
 		}
+		if err == io.EOF {
+			var empty string
+			return &empty, nil
+		}
+		log.Printf("%+v", err)
+		return nil, err
 	}
 
 	return &msg, nil
@@ -155,84 +159,131 @@ func (har *hamAlertReader) gatherHamAlerts() error {
 	// wait for new lines to show up and add spot entries for them
 	re := regexp.MustCompile(`^DX de\s+([^:]+):\s+([^\s]+)\s+([^\s]+)\s+(.*)([0-9]{4})Z`)
 	for {
-		select {
-		case <-quitHamAlert:
+		if har.stopped() {
 			return nil
-		default:
-			msg, err = har.readString('\n')
-			if err != nil {
-				log.Printf("%+v", err)
-				return err
-			}
-			if msg == nil {
-				return nil
-			}
+		}
 
-			//log.Printf("%s", *msg)
+		msg, err = har.readString('\n')
+		if err != nil {
+			log.Printf("%+v", err)
+			return err
+		}
+		if msg == nil {
+			return nil
+		}
 
-			// parse for elements
-			match := re.FindStringSubmatch(*msg)
-			if match == nil {
-				if strings.HasPrefix(strings.ToLower(*msg), "no spots") {
-					// pause
-					time.Sleep(30 * time.Second)
-					continue
+		//log.Printf("%s", *msg)
+
+		// parse for elements
+		match := re.FindStringSubmatch(*msg)
+		if match == nil {
+			if strings.HasPrefix(strings.ToLower(*msg), "no spots") {
+				select {
+				case <-har.ctx.Done():
+					return nil
+				case <-time.After(30 * time.Second):
 				}
-
-				err := fmt.Errorf("could not match on message '%s'", *msg)
-				log.Printf("%+v", err)
-				return err
+				continue
 			}
 
-			//log.Printf("%+v", match)
+			err := fmt.Errorf("could not match on message '%s'", *msg)
+			log.Printf("%+v", err)
+			return err
+		}
 
-			err = spot.Add(match[5], match[3], match[2], match[4], match[1])
-			if err != nil {
-				log.Printf("%+v", err)
-				return err
-			}
+		//log.Printf("%+v", match)
+
+		err = spot.Add(match[5], match[3], match[2], match[4], match[1])
+		if err != nil {
+			log.Printf("%+v", err)
+			return err
 		}
 	}
 }
 
 // StartHamAlerts starts the collection of spots from HamAlert
 func StartHamAlerts() {
-	quitHamAlert = make(chan bool)
+	mutexQuitChannels.Lock()
+	if hamCancel != nil {
+		mutexQuitChannels.Unlock()
+		return
+	}
 
-	go func() {
-		// this gives us reconnect and ability to stop/start
-		for {
-			select {
-			case <-quitHamAlert:
+	ctx, cancel := context.WithCancel(context.Background())
+	hamCancel = cancel
+	mutexQuitChannels.Unlock()
+
+	go runHamAlerts(ctx)
+}
+
+// runHamAlerts stays connected until ctx is cancelled.
+func runHamAlerts(ctx context.Context) {
+	for {
+		if ctx.Err() != nil {
+			return
+		}
+
+		setTaskStatus(TaskHamAlert, TaskStatusOK)
+
+		reader, err := NewHamAlertReader()
+		if err != nil {
+			log.Printf("%+v", err)
+		} else {
+			reader.ctx = ctx
+			if !trackHamAlertReader(ctx, reader) {
+				_ = reader.c.Close()
 				return
-			default:
-				setTaskStatus(TaskHamAlert, TaskStatusOK)
+			}
 
-				var err error
-				har, err = NewHamAlertReader()
-				if err != nil {
-					log.Printf("%+v", err)
-				} else {
-					err = har.gatherHamAlerts()
-					if err != nil {
-						log.Printf("%+v", err)
-					}
-				}
-
-				setTaskStatus(TaskHamAlert, TaskStatusFailed)
-
-				if err != nil {
-					// some connection problem, pause before retry
-					time.Sleep(30 * time.Second)
-				}
+			err = reader.gatherHamAlerts()
+			if err != nil {
+				log.Printf("%+v", err)
 			}
 		}
-	}()
+
+		if ctx.Err() != nil {
+			return
+		}
+
+		setTaskStatus(TaskHamAlert, TaskStatusFailed)
+
+		if err != nil {
+			// some connection problem, pause before retry
+			select {
+			case <-ctx.Done():
+				return
+			case <-time.After(30 * time.Second):
+			}
+		}
+	}
+}
+
+// trackHamAlertReader records the live connection unless stop already won the race.
+func trackHamAlertReader(ctx context.Context, reader *hamAlertReader) bool {
+	mutexQuitChannels.Lock()
+	defer mutexQuitChannels.Unlock()
+
+	if ctx.Err() != nil || hamCancel == nil {
+		return false
+	}
+
+	har = reader
+	return true
 }
 
 // StopHamAlerts shutdowns the collection of spots from HamAlert
 func StopHamAlerts() {
-	close(quitHamAlert)
+	mutexQuitChannels.Lock()
+	cancel := hamCancel
+	reader := har
+	hamCancel = nil
+	har = nil
+	if cancel != nil {
+		cancel()
+	}
+	mutexQuitChannels.Unlock()
 
-	har.c.Close()
+	if reader != nil && reader.c != nil {
+		_ = reader.c.Close()
+	}
 }

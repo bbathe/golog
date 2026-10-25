@@ -125,7 +125,12 @@ func mainStatusBar() declarative.Composite {
 		},
 	}
 
-	tasks.Attach(updateStatuses)
+	tasks.Attach(func(statuses []tasks.GoLogTaskStatus) {
+		snapshot := append([]tasks.GoLogTaskStatus(nil), statuses...)
+		runOnUI(func() {
+			updateStatuses(snapshot)
+		})
+	})
 
 	return c
 }

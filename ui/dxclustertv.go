@@ -35,7 +35,11 @@ func NewDXClusterModel() *DXClusterModel {
 
 	// register event handler for any spot changes
 	spot.Attach(func() {
-		dxclustermodel.ResetRows()
+		runOnUI(func() {
+			if dxclustermodel != nil {
+				dxclustermodel.ResetRows()
+			}
+		})
 	})
 
 	return m

@@ -1,6 +1,7 @@
 package tasks
 
 import (
+	"context"
 	"sync"
 	"time"
 
@@ -11,7 +12,10 @@ import (
 var (
 	mutexQuitChannels sync.Mutex
 	quitChannels      []chan bool
-	quitStartup       chan bool
+	allowStart        = true
+	running           bool
+	startCancel       context.CancelFunc
+	startDone         chan struct{}
 
 	mutexTaskStatuses sync.Mutex
 	statuses          [int(TaskLast)]GoLogTaskStatus
@@ -21,15 +25,19 @@ var (
 // Start starts all background tasks
 func Start() {
 	mutexQuitChannels.Lock()
-	defer mutexQuitChannels.Unlock()
-
-	if len(quitChannels) > 0 {
-		// already did this
+	if running || !allowStart {
+		mutexQuitChannels.Unlock()
 		return
 	}
 
-	// our quit channel
-	quitStartup = make(chan bool)
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan struct{})
+	running = true
+	startCancel = cancel
+	startDone = done
+	mutexQuitChannels.Unlock()
+
+	defer close(done)
 
 	// set status of all tasks to not running
 	for t := 0; t < int(TaskLast); t++ {
@@ -52,9 +60,6 @@ func Start() {
 		tasksOneMinute = append(tasksOneMinute, taskWrapper(TaskQSLClubLog, QSLClublog))
 	}
 
-	// create quit channels
-	quitChannels = make([]chan bool, 0, len(tasksOneMinute))
-
 	// since we have a bunch of tasks to start and some sympathy toward our host
 	// we are going to stagger the starting of the tasks
 	// calculate spacing between starting tasks
@@ -65,49 +70,84 @@ func Start() {
 
 	// fire off long-lived thread to collect spots from HamAlert, if configured
 	// statues are updated directly in the HamAlerts module
-	if config.ClusterServices.HamAlert.Validate() == nil {
+	if ctx.Err() == nil && config.ClusterServices.HamAlert.Validate() == nil {
 		StartHamAlerts()
 	}
 
 	// schedule the tasks
 	for _, fn := range tasksOneMinute {
-		fn := fn
-
-		// create recurring task
-		q := util.ScheduleRecurring(fn, 60*time.Second)
-
-		// and keep quit channel
-		quitChannels = append(quitChannels, q)
-
-		// pause while checking if we being signalled for shutdown
-		for i := 0; i < space; i++ {
-			select {
-			case <-quitStartup:
-				return
-			default:
-				// pause between starts
-				time.Sleep(1 * time.Second)
-			}
+		if !scheduleTask(ctx, fn) {
+			return
 		}
+		if !waitTaskGap(ctx, space) {
+			return
+		}
+	}
+}
+
+// scheduleTask starts one recurring task unless startup has been cancelled.
+// The quit channel is closed and not stored when startup is already cancelled,
+// so Pause does not close it a second time.
+func scheduleTask(ctx context.Context, fn func()) bool {
+	if ctx.Err() != nil {
+		return false
+	}
+
+	q := util.ScheduleRecurring(fn, 60*time.Second)
+
+	mutexQuitChannels.Lock()
+	defer mutexQuitChannels.Unlock()
+
+	if ctx.Err() != nil {
+		close(q)
+		return false
+	}
+
+	quitChannels = append(quitChannels, q)
+	return true
+}
+
+// waitTaskGap waits between task starts. Cancel returns immediately.
+func waitTaskGap(ctx context.Context, space int) bool {
+	timer := time.NewTimer(time.Duration(space) * time.Second)
+	defer timer.Stop()
+
+	select {
+	case <-ctx.Done():
+		return false
+	case <-timer.C:
+		return true
 	}
 }
 
 // Pause stops all background tasks, no cleanup
 func Pause() {
-	// stop startup if its still going
-	close(quitStartup)
+	mutexQuitChannels.Lock()
+	cancel := startCancel
+	done := startDone
+	wasRunning := running
+	mutexQuitChannels.Unlock()
+
+	// Cancel outside the lock. Start waits on this context without holding the mutex.
+	if cancel != nil {
+		cancel()
+	}
+	if wasRunning && done != nil {
+		<-done
+	}
+
+	StopHamAlerts()
 
 	mutexQuitChannels.Lock()
 	defer mutexQuitChannels.Unlock()
 
-	// stop collecting HamAlert spots
-	StopHamAlerts()
-
-	// stop tasks
 	for _, q := range quitChannels {
 		close(q)
 	}
-	quitChannels = make([]chan bool, 0)
+	quitChannels = nil
+	running = false
+	startCancel = nil
+	startDone = nil
 
 	// set status of all tasks to not running
 	for t := 0; t < int(TaskLast); t++ {
@@ -117,6 +157,10 @@ func Pause() {
 
 // Shutdown stops all background tasks, and runs cleanup tasks
 func Shutdown() {
+	mutexQuitChannels.Lock()
+	allowStart = false
+	mutexQuitChannels.Unlock()
+
 	Pause()
 
 	//	concurrent shutdown tasks

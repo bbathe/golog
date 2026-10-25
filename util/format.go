@@ -8,11 +8,18 @@ import (
 // FormatFrequency returns a string with frequency formatted like 999.999.99
 func FormatFrequency(freq string) string {
 	// split on current decimal point
-	parts := strings.Split(freq, ".")
+	parts := strings.SplitN(freq, ".", 2)
 	s1 := parts[0]
 
-	// pad last part out to 2 digits
-	s2 := parts[1] + strings.Repeat("0", 2-len(parts[1]))
+	// keep two fractional digits; a missing fraction is zero
+	frac := ""
+	if len(parts) == 2 {
+		frac = parts[1]
+	}
+	if len(frac) > 2 {
+		frac = frac[:2]
+	}
+	s2 := frac + strings.Repeat("0", 2-len(frac))
 
 	// figure out if we need to do anything (first part more than 3 digits)
 	startOffset := 0

@@ -40,6 +40,14 @@ func Detach(handle int) {
 	statusHandlers[handle] = nil
 }
 
+// RepublishStatus delivers the current task statuses to registered handlers.
+func RepublishStatus() {
+	mutexTaskStatuses.Lock()
+	defer mutexTaskStatuses.Unlock()
+
+	publishTaskStatusChange()
+}
+
 func publishTaskStatusChange() {
 	for _, h := range statusHandlers {
 		if h != nil {

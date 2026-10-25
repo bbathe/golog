@@ -10,6 +10,16 @@ import (
 	"github.com/lxn/win"
 )
 
+// runOnUI queues fn on the main window thread.
+// Events that arrive before the window exists are dropped; the caller refreshes once the window is up.
+func runOnUI(fn func()) {
+	mw := mainWin
+	if mw == nil || mw.Handle() == 0 {
+		return
+	}
+	mw.Synchronize(fn)
+}
+
 // drawCellStyles paints the tableview cells how we want
 func drawCellStyles(tv *walk.TableView, style *walk.CellStyle, sb walk.SorterBase) {
 	// draw header cells ourselves
